@@ -22,7 +22,7 @@ export class Player {
 
         // player bounding box
         this.playerBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
-        this.playerBB.setFromObject(this.player);
+        this.updateBoundingBox();
 
         scene.add(this.player);
         this.setupControls();
@@ -40,36 +40,57 @@ export class Player {
     updateBoundingBox() {
         this.playerBB.setFromObject(this.player);
     }
+    
+    applyGravity() {
+        if (!this.onGround) {
+            this.velocity.y += this.gravity;
+        }
+    }
 
     update() {
         this.handleInput();
+
+        this.applyGravity();
 
         const nextPosition = {
             x: this.position.x,
             y: this.position.y
         };
 
-        //if (!this.onGround) {
-        //    this.velocity.y += this.gravity;
-        //}
-
         nextPosition.x += this.velocity.x;
         nextPosition.y += this.velocity.y;
 
-        this.onGround = false;
+        const collision = this.checkCollisions(nextPosition);
 
-        // check if next position would cause a collision
-        if (!this.checkCollisions(nextPosition)) {
-            // if no collision, update position
+        // horizontal movement handling
+        if (!collision.cancelHorizontal) {
             this.position.x = nextPosition.x;
-            this.position.y = nextPosition.y;
-            this.player.position.set(this.position.x, this.position.y, 0);
-            this.updateBoundingBox();
+        } else {
+            this.velocity.x = 0;
         }
+
+        if (!collision.cancelVertical) {
+            this.position.y = nextPosition.y;
+        } else {
+            this.velocity.y = 0;
+            if (collision.onGround) {
+                this.onGround = true;
+                this.position.y = nextPosition.y;
+            }
+        }
+
+        if (!collision.onGround) {
+            this.onGround = false;
+        }
+        
+        this.player.position.set(this.position.x, this.position.y, 0);
+        this.updateBoundingBox();
+
     }
 
     checkCollisions(nextPosition) {
         const originalPosition = this.player.position.clone();
+
         this.player.position.set(nextPosition.x, nextPosition.y, 0);
         this.updateBoundingBox();
 
@@ -80,28 +101,80 @@ export class Player {
             Math.floor(nextPosition.y + 2)
         );
 
-        let collision = false;
+        let collisionResponse = {
+            hasCollision: false,
+            cancelHorizontal: false,
+            cancelVertical: false,
+            onGround: false
+        };
 
         for (let block of nearbyBlocks) {
             if (this.playerBB.intersectsBox(block.boundingBox)) {
-                collision = true;
-                break;
+                const collision = this.getCollisionDirection(this.playerBB, block.boundingBox);
+
+                console.log(`Collided with block at x: ${block.position.x} y: ${block.position.y} on the ${collision.direction}. Overlap: ${collision.overlap}`);
+
+                if (collision.direction === 'left') {
+                    collisionResponse.cancelHorizontal = true;
+                    nextPosition.x += collision.overlap;
+                } else if (collision.direction === 'right') {
+                    collisionResponse.cancelHorizontal = true;
+                    nextPosition.x -= collision.overlap;
+                } else if (collision.direction === 'top') {
+                    collisionResponse.cancelVertical = true;
+                    nextPosition.y -= collision.overlap;
+                } else if (collision.direction === 'bottom') {
+                    collisionResponse.cancelVertical = true;
+                    nextPosition.y += collision.overlap;
+                    collisionResponse.onGround = true;
+                }
+
+                collisionResponse.hasCollision = true;
+
+                // immediately updates position and bounding box after resolving collision
+                this.player.position.set(nextPosition.x, nextPosition.y, 0);
+                this.updateBoundingBox();
             }
         }
 
-        // Reset position
+        console.log(`On ground: ${this.onGround}`);
+
+        // reset position
         this.player.position.copy(originalPosition);
-        this.updateBoundingBox();
                 
-        return collision;
+        return collisionResponse;
+    }
+
+    getCollisionDirection(playerBox, blockBox) {
+        let overlapX = Math.min(playerBox.max.x - blockBox.min.x, blockBox.max.x - playerBox.min.x);
+        let overlapY = Math.min(playerBox.max.y - blockBox.min.y, blockBox.max.y - playerBox.min.y);
+
+
+
+        const playerCenter = {
+            x: (playerBox.min.x + playerBox.max.x) / 2,
+            y: (playerBox.min.y + playerBox.max.y) / 2
+        };
+
+        const blockCenter = {
+            x: (blockBox.min.x + blockBox.max.x) / 2,
+            y: (blockBox.min.y + blockBox.max.y) /2
+        };
+        // if player x is less than block center then collision was to right otherwise left
+        if (Math.abs(overlapX) < Math.abs(overlapY)) {
+            return {
+                direction: playerCenter.x < blockCenter.x ? 'left' : 'right',
+                overlap: overlapX
+            };
+        } else {
+            return {
+                direction: playerCenter.y < blockCenter.y ? 'top' : 'bottom',
+                overlap: overlapY
+            };
+        }
     }
 
     handleInput() {
-        // pauses game
-        if (this.keys['p']) {
-            while(true) {}
-        }
-
         if (this.keys['ArrowLeft'] || this.keys['a']) {
             if (this.velocity.x <= this.minVelocity) {
                 this.velocity.x = this.minVelocity;
@@ -118,14 +191,9 @@ export class Player {
             this.velocity.x = 0;
         }
         
-        if ((this.keys['ArrowUp'] || this.keys['w'])) { //&& this.onGround
-            this.velocity.y += this.speed;
-            //this.velocity.y = this.jumpSpeed;
-            //this.onGround = false;
-        } else if ((this.keys['ArrowUp'] || this.keys['s']) ) {
-            this.velocity.y -= this.speed;
-        } else {
-            this.velocity.y = 0;
+        if ((this.keys['ArrowUp'] || this.keys['w']) && this.onGround) {
+            this.velocity.y = this.jumpSpeed;
+            this.onGround = false;
         }
     }
 

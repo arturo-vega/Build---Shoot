@@ -8,7 +8,11 @@ export class Game {
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight);
         const canvas = document.querySelector('canvas.webgl')
 
-        this.renderer = new THREE.WebGLRenderer({canvas: canvas})
+        try {
+            this.renderer = new THREE.WebGLRenderer({canvas: canvas})
+        } catch {
+            alert("WebGL failed to initialize. Try restarting your browser or check your browser's compatibiliy.");
+        }
         this.renderer.setSize(window.innerWidth, window.innerHeight);
 
         this.world = new World(this.scene);
