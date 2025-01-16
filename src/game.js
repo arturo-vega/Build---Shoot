@@ -14,8 +14,16 @@ export class Game {
         this.world = new World(this.scene);
         this.player = new Player(this.scene, this.world);
 
-        this.camera.position.set(this.player.playerPosition.x, this.player.playerPosition.y+1, 15);
+        this.camera.position.set(this.player.playerPosition.x, this.player.playerPosition.y, 10);
         this.camera.lookAt(this.player.playerPosition.x,this.player.playerPosition.y,0);
+
+        // sun light
+        const directionalLight = new THREE.DirectionalLight( 0xffffff, 1.2 );
+        directionalLight.position.set(-1,1,1);
+        this.scene.add( directionalLight );
+
+        const light = new THREE.AmbientLight( 0x404040 ); // soft white light
+        this.scene.add( light );
 
         this.setupEventListeners();
         this.animate();
@@ -43,7 +51,7 @@ export class Game {
         this.player.update();
         this.world.update();
         // update camera to follow player
-        this.camera.position.set(this.player.playerPosition.x, this.player.playerPosition.y+1, 15);
+        this.camera.position.set(this.player.playerPosition.x, this.player.playerPosition.y, 7);
         this.camera.lookAt(this.player.playerPosition.x,this.player.playerPosition.y,0);
     }
     render() {

@@ -10,7 +10,13 @@ export class World {
                 this.createBlock(i, j);
             }
         }
-        this.createBlock(19, 12);
+
+        for (let i = 0; i < 5; i++) {
+            this.createBlock(i, 12)
+        }
+        for (let i = 0; i < 20; i++) {
+            this.createBlock(20, i);
+        }
 
         //const gridHelper = new THREE.gridHelper(10,10);
         //gridHelper.rotation.x = Math.PI / 2;
@@ -19,10 +25,17 @@ export class World {
 
     createBlock(x, y) {
         const geometry = new THREE.BoxGeometry(1,1,1);
-        const material = new THREE.MeshBasicMaterial({color: 0x8B4513 });
+        const material = new THREE.MeshPhongMaterial({color: 0x8B4513 });
         const block = new THREE.Mesh(geometry, material);
 
         block.position.set(x, y, 0);
+        
+        const blockBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
+        blockBB.setFromObject(block);
+        block.boundingBox = blockBB;
+
+        block.castShadow = true;
+        block.receiveShadow = true;
         this.scene.add(block);
 
         const key = `${x},${y}`;
@@ -40,8 +53,8 @@ export class World {
 
     getBlocksInArea(startX, startY, endX, endY) {
         const blocks = [];
-        for (let x = startX; x <= endX; x++) {
-            for (let y = startY; y <= endY; y++) {
+        for (let x = Math.floor(startX); x <= Math.floor(endX); x++) {
+            for (let y = Math.floor(startY); y <= Math.floor(endY); y++) {
                 const key = `${x},${y}`;
                 const block = this.blocks.get(key);
                 if (block) {

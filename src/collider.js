@@ -9,11 +9,26 @@ export class Collider {
     }
 
     static getBoundingBox(position, size) {
-        return {
-            minX: position.x - size.x / 2,
-            maxX: position.x + size.x / 2,
-            minY: position.y - size.y / 2,
-            maxY: position.y + size.y / 2
-        };
+        if (!(size.x === 1) || !(size.y === 1)) { // work around for the player
+            console.log(`minX: ${position.x + Math.abs(1 - size.x)} maxX: ${position.x - Math.abs(1 - size.x)} minY: ${position.y - (Math.abs(1 - size.y) / 2)} maxY: ${position.y + (Math.abs(1 - size.y) / 2)}`);
+            return {
+                minX: position.x + Math.abs(1 - size.x),
+                maxX: position.x - Math.abs(1 - size.x),
+                minY: position.y - (Math.abs(1 - size.y) / 2),
+                maxY: position.y + (Math.abs(1 - size.y) / 2)
+            };
+        }
+        else{
+            return {
+                minX: position.x,
+                maxX: position.x + size.x,
+                minY: position.y,
+                maxY: position.y + size.y
+            };
+        }
+    }
+
+    static between(x, min, max) {
+        return x >= min && x <= max;
     }
 }
