@@ -1,21 +1,28 @@
 import * as THREE from 'three';
 
 export class Player {
-    constructor(scene, world) {
+    constructor(scene, world, camera) {
         this.world = world;
+        this.camera = camera;
         this.onGround = false;
         this.velocity = {x: 0, y: 0};
         this.size = {x: 0.75, y: 1.75};
-        this.position = {x: 10, y: 12};
+        this.position = {x: 10, y: 30};
+        this.previousMousePosition = {x:10, y:10};
+        this.currentMousePosition = {x:0, y:0};
         this.maxVelocity = 0.3;
         this.minVelocity = -0.3;
+        this.terminalVelocity = -1.2
         this.friction = -0.1;
         this.jumpSpeed = .5;
         this.gravity = -0.025;
         this.speed = 0.01;
 
+        this.mouseRaycaster = new THREE.Raycaster();
+        this.mouse = new THREE.Vector2();
+
         // player cube
-        const geometry = new THREE.BoxGeometry(this.size.x, this.size.y, .5);
+        const geometry = new THREE.BoxGeometry(this.size.x, this.size.y, 1);
         const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
         this.player = new THREE.Mesh(geometry, material);
         this.player.position.set(this.position.x,this.position.y,0);
@@ -26,6 +33,7 @@ export class Player {
 
         scene.add(this.player);
         this.setupControls();
+
     }
 
     get playerPosition() {
@@ -43,7 +51,11 @@ export class Player {
     
     applyGravity() {
         if (!this.onGround) {
-            this.velocity.y += this.gravity;
+            if (this.velocity.y < this.terminalVelocity) {
+                this.velocity.y = this.terminalVelocity
+            } else {
+                this.velocity.y += this.gravity;
+            }
         }
     }
 
@@ -59,6 +71,8 @@ export class Player {
 
         nextPosition.x += this.velocity.x;
         nextPosition.y += this.velocity.y;
+
+        //console.log(`y speed: ${this.velocity.y}`)
 
         const collision = this.checkCollisions(nextPosition);
 
@@ -85,7 +99,7 @@ export class Player {
         
         this.player.position.set(this.position.x, this.position.y, 0);
         this.updateBoundingBox();
-
+        //console.log(`Player x: ${this.position.x} y: ${this.position.y}`)
     }
 
     checkCollisions(nextPosition) {
@@ -112,14 +126,14 @@ export class Player {
             if (this.playerBB.intersectsBox(block.boundingBox)) {
                 const collision = this.getCollisionDirection(this.playerBB, block.boundingBox);
 
-                console.log(`Collided with block at x: ${block.position.x} y: ${block.position.y} on the ${collision.direction}. Overlap: ${collision.overlap}`);
+                //console.log(`Collided with block at x: ${block.position.x} y: ${block.position.y} on the ${collision.direction}. Overlap: ${collision.overlap}`);
 
                 if (collision.direction === 'left') {
                     collisionResponse.cancelHorizontal = true;
-                    nextPosition.x += collision.overlap;
+                    nextPosition.x -= collision.overlap;
                 } else if (collision.direction === 'right') {
                     collisionResponse.cancelHorizontal = true;
-                    nextPosition.x -= collision.overlap;
+                    nextPosition.x += collision.overlap;
                 } else if (collision.direction === 'top') {
                     collisionResponse.cancelVertical = true;
                     nextPosition.y -= collision.overlap;
@@ -137,7 +151,7 @@ export class Player {
             }
         }
 
-        console.log(`On ground: ${this.onGround}`);
+        //console.log(`On ground: ${this.onGround}`);
 
         // reset position
         this.player.position.copy(originalPosition);
@@ -149,7 +163,12 @@ export class Player {
         let overlapX = Math.min(playerBox.max.x - blockBox.min.x, blockBox.max.x - playerBox.min.x);
         let overlapY = Math.min(playerBox.max.y - blockBox.min.y, blockBox.max.y - playerBox.min.y);
 
-
+        if (overlapX > 1) {
+            overlapX = .9;
+        }
+        if (overlapY > 1) {
+            overlapY = .9;
+        }
 
         const playerCenter = {
             x: (playerBox.min.x + playerBox.max.x) / 2,
@@ -205,5 +224,73 @@ export class Player {
         window.addEventListener('keyup', (e) => {
             this.keys[e.key] = false;
         });
+
+        window.addEventListener('mousemove', this.onMouseMove.bind(this), true);
+        window.addEventListener('click', this.onClick.bind(this), false);
+    }
+
+    onMouseMove(event) {
+        this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        this.mouseRaycaster.setFromCamera(this.mouse, this.camera);
+
+        this.currentMousePosition = {x: Math.floor(this.mouse.x), y: Math.floor(this.mouse.y)};
+
+        const intersectionPoint = this.getRayPlaneIntersection(
+            this.camera,
+            this.mouseRaycaster.ray.direction
+        );
+        //console.log(`Previous mouse x:${this.previousMousePosition.x} y:${this.previousMousePosition.y}`);
+        //console.log(`Current mouse x:${this.currentMousePosition.x} y:${this.currentMousePosition.y}`);
+        //console.log(`Mouse in same spot: ${this.mouseInSameSpot(this.previousMousePosition, this.currentMousePosition)}`);
+        if (!this.mouseInSameSpot(this.previousMousePosition, this.currentMousePosition)) {
+
+            this.world.removeBlock(this.previousMousePosition.x, this.previousMousePosition.y, "ghost");
+            this.world.blockGhost(Math.floor(intersectionPoint.x), Math.floor(intersectionPoint.y));
+
+            this.previousMousePosition = this.currentMousePosition;
+            this.currentMousePosition.x = Math.floor(intersectionPoint.x);
+            this.currentMousePosition.y = Math.floor(intersectionPoint.y);
+        }
+    }
+
+    mouseInSameSpot(previousMousePosition, currentMousePosition) {
+        if (previousMousePosition.x != currentMousePosition.x || previousMousePosition.y != currentMousePosition.y) {
+            return false;
+        }
+        else {
+            return true;
+        }
+    }
+
+    onClick() {
+        this.mouseRaycaster.setFromCamera(this.mouse, this.camera);
+
+        const intersectionPoint = this.getRayPlaneIntersection(
+            this.camera,
+            this.mouseRaycaster.ray.direction
+        );
+
+        this.world.createBlock(Math.floor(intersectionPoint.x), Math.floor(intersectionPoint.y));
+
+        //console.log(`Intersect point: x:${Math.floor(intersectionPoint.x)} y:${Math.floor(intersectionPoint.y)}`);
+
+    }
+
+    // returns floating number
+    getRayPlaneIntersection(camera, rayDirection) {
+        // intersection at point z = 0
+        // cameraPostion.z + t * rayDirection.z = 0
+        // solve for t and find intersection point
+
+        const t = -camera.position.z / rayDirection.z;
+
+        const intersectionPoint = new THREE.Vector3 (
+            camera.position.x + t * rayDirection.x,
+            camera.position.y + t * rayDirection.y,
+            0 // z is always 0
+        );
+
+        return intersectionPoint;
     }
 }

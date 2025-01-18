@@ -16,10 +16,12 @@ export class Game {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
 
         this.world = new World(this.scene);
-        this.player = new Player(this.scene, this.world);
+        this.player = new Player(this.scene, this.world, this.camera);
 
         this.camera.position.set(this.player.playerPosition.x, this.player.playerPosition.y, 10);
         this.camera.lookAt(this.player.playerPosition.x,this.player.playerPosition.y,0);
+
+        this.scene.add(this.camera);
 
         // sun light
         const directionalLight = new THREE.DirectionalLight( 0xffffff, 1.2 );
@@ -31,16 +33,14 @@ export class Game {
 
         this.setupEventListeners();
         this.animate();
+        
     }
 
     setupEventListeners() {
         window.addEventListener('resize', () => {
-            const width = window.innerHeight;
-            const height = window.innerHeight;
-
-            this.camera.aspect(width / height);
+            this.camera.aspect = window.innerWidth / window.innerHeight;
             this.camera.updateProjectionMatrix();
-            this.renderer.setSize(width, height);
+            this.renderer.setSize( window.innerWidth, window.innerHeight );
         });
     }
 
