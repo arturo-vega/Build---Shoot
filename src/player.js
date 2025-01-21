@@ -99,6 +99,7 @@ export class Player {
         
         this.player.position.set(this.position.x, this.position.y, 0);
         this.updateBoundingBox();
+        this.updateGhost();
         //console.log(`Player x: ${this.position.x} y: ${this.position.y}`)
     }
 
@@ -127,7 +128,6 @@ export class Player {
                 const collision = this.getCollisionDirection(this.playerBB, block.boundingBox);
 
                 //console.log(`Collided with block at x: ${block.position.x} y: ${block.position.y} on the ${collision.direction}. Overlap: ${collision.overlap}`);
-
                 if (collision.direction === 'left') {
                     collisionResponse.cancelHorizontal = true;
                     nextPosition.x -= collision.overlap;
@@ -232,6 +232,10 @@ export class Player {
     onMouseMove(event) {
         this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
         this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    }
+
+
+    updateGhost() {
         this.mouseRaycaster.setFromCamera(this.mouse, this.camera);
 
         this.currentMousePosition = {x: Math.floor(this.mouse.x), y: Math.floor(this.mouse.y)};
@@ -240,18 +244,16 @@ export class Player {
             this.camera,
             this.mouseRaycaster.ray.direction
         );
-        //console.log(`Previous mouse x:${this.previousMousePosition.x} y:${this.previousMousePosition.y}`);
-        //console.log(`Current mouse x:${this.currentMousePosition.x} y:${this.currentMousePosition.y}`);
-        //console.log(`Mouse in same spot: ${this.mouseInSameSpot(this.previousMousePosition, this.currentMousePosition)}`);
+
         if (!this.mouseInSameSpot(this.previousMousePosition, this.currentMousePosition)) {
 
             this.world.removeBlock(this.previousMousePosition.x, this.previousMousePosition.y, "ghost");
-            this.world.blockGhost(Math.floor(intersectionPoint.x), Math.floor(intersectionPoint.y));
+            this.world.blockGhost(Math.floor(intersectionPoint.x), Math.floor(intersectionPoint.y), this.playerBB);
 
             this.previousMousePosition = this.currentMousePosition;
             this.currentMousePosition.x = Math.floor(intersectionPoint.x);
             this.currentMousePosition.y = Math.floor(intersectionPoint.y);
-        }
+            }
     }
 
     mouseInSameSpot(previousMousePosition, currentMousePosition) {
@@ -265,16 +267,15 @@ export class Player {
 
     onClick() {
         this.mouseRaycaster.setFromCamera(this.mouse, this.camera);
+        this.updateGhost();
 
         const intersectionPoint = this.getRayPlaneIntersection(
             this.camera,
             this.mouseRaycaster.ray.direction
         );
 
-        this.world.createBlock(Math.floor(intersectionPoint.x), Math.floor(intersectionPoint.y));
-
+        this.world.createBlock(Math.floor(intersectionPoint.x), Math.floor(intersectionPoint.y),this.playerBB);
         //console.log(`Intersect point: x:${Math.floor(intersectionPoint.x)} y:${Math.floor(intersectionPoint.y)}`);
-
     }
 
     // returns floating number

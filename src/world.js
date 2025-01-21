@@ -8,19 +8,34 @@ export class World {
 
         for (let i = 0; i < 100; i++) {
             for (let j = 0; j < 5; j++) {
-                this.createBlock(i, j);
+                this.createNonPlayerBlock(i, j);
             }
         }
-
-
-        //const gridHelper = new THREE.gridHelper(10,10);
-        //gridHelper.rotation.x = Math.PI / 2;
-        //this.scene.add(gridHelper);
     }
 
-    createBlock(x, y) {
-        if (this.isValidSpot(x,y)) {
-            console.log("VALID SPOT!");
+    createNonPlayerBlock(x,y) {
+        const geometry = new THREE.BoxGeometry(1,1,1);
+        const material = new THREE.MeshPhongMaterial({color: 0x8B4513 });
+        const block = new THREE.Mesh(geometry, material);
+
+        block.position.set(x, y, 0);
+        
+        const blockBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
+        blockBB.setFromObject(block);
+        block.boundingBox = blockBB;
+
+        block.castShadow = true;
+        block.receiveShadow = true;
+        this.scene.add(block);
+
+        const key = `${x},${y}`;
+        this.blocks.set(key, block);
+    }
+
+    createBlock(x, y, playerBB) {
+        const ghostBlock = this.blockGhosts.get(`${x},${y}`);
+        const ghostBB = ghostBlock.boundingBox;
+        if (this.isValidSpot(x,y) && !playerBB.intersectsBox(ghostBB)) {
             const geometry = new THREE.BoxGeometry(1,1,1);
             const material = new THREE.MeshPhongMaterial({color: 0x8B4513 });
             const block = new THREE.Mesh(geometry, material);
@@ -45,10 +60,6 @@ export class World {
             const key = `${x},${y}`;
             let block = this.blockGhosts.get(key);
             if (block) {
-                //console.log(`Destroying block${block.id}: x: ${x} y: ${y}`);
-                //console.log('Block to remove:', block);
-                //console.log('Block parent:', block.parent);
-                //console.log('Is in scene:', this.scene.children.includes(block));
                 block.geometry.dispose();
                 block.material.dispose();
                 this.scene.remove(block);
@@ -64,6 +75,7 @@ export class World {
         }
     }
 
+    // used to check blocks around player for collision detection
     getBlocksInArea(startX, startY, endX, endY) {
         const blocks = [];
         for (let x = Math.floor(startX); x <= Math.floor(endX); x++) {
@@ -78,56 +90,38 @@ export class World {
         return blocks;
     }
 
-    blockGhost(x, y) {
-        // if valid make a green transparent cube
-        if (this.isValidSpot(x,y)) {
-            const geometry = new THREE.BoxGeometry(1,1,1);
-            const material = new THREE.MeshPhongMaterial({
-            color: 0x98fb98, // GREEN
+    blockGhost(x, y, playerBB) {
+        // if valid make a green transparent cube otherwise red
+        const key = `${x},${y}`;
+        const geometry = new THREE.BoxGeometry(1,1,1);
+        const blockGhost = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({
             opacity: 0.7,
             transparent: true
-            });
-            const blockGhost = new THREE.Mesh(geometry, material);
+        }));
 
-            const key = `${x},${y}`;
+        // checks if the cube intersects with the player or other blocks to decide on color
+        blockGhost.position.set(x, y, 0);
+        const blockBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
+        blockBB.setFromObject(blockGhost);
+        blockGhost.boundingBox = blockBB;
 
-            if (!this.blockGhosts.get(key)) {
-                blockGhost.position.set(x, y, 0);
-                this.scene.add(blockGhost);
-                this.blockGhosts.set(key, blockGhost);
-            //console.log(`Block set at (${x}, ${y})`);
-            }
-        // if invalid make a red transparent cube
-        } else {
-            const geometry = new THREE.BoxGeometry(1,1,1);
-            const material = new THREE.MeshPhongMaterial({
-            color: 0xdc143c, // RED
-            opacity: 0.7,
-            transparent: true
-            });
-            const blockGhost = new THREE.Mesh(geometry, material);
+        const isSpotEmpty = this.isValidSpot(x, y);
+        const doesNotIntersectPlayer = !playerBB.intersectsBox(blockBB);
 
-            const key = `${x},${y}`;
+        blockGhost.material.color.setHex(
+            isSpotEmpty && doesNotIntersectPlayer ? 0x98fb98 : 0xdc143c //green if true red if false
+        );
 
-            if (!this.blockGhosts.get(key)) {
-                blockGhost.position.set(x, y, 0);
-                this.scene.add(blockGhost);
-                this.blockGhosts.set(key, blockGhost);
-            //console.log(`Block set at (${x}, ${y})`);
-            }
-        //console.log(!this.blockGhosts.get(key));
-        }
+        this.scene.add(blockGhost);
+        this.blockGhosts.set(key, blockGhost);
     }
 
     // checks to see if a spot in the map has a block there or not
     isValidSpot(x, y) {
         const key = `${x},${y}`
         const block = this.blocks.get(key);
-        if (block) {
-            return false;
-        } else {
-            return true;
-        }
+        if (block) return false;
+        return true;
     }
 
     update() {
