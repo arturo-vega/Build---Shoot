@@ -6,11 +6,10 @@ import { World } from './world.js';
 export class Game {
     constructor(socket) {
         this.socket = socket;
-        this.setupSocketListeners();
         this.otherPlayers = new Map();
 
         this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight);
+        this.camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight);
         const canvas = document.querySelector('canvas.webgl')
 
         try {
@@ -44,7 +43,7 @@ export class Game {
         // time stamp for interpolation
         this.lastUpdateTime = performance.now();
 
-        this.updateRate = 50; // milliseconds
+        this.updateRate = 15; // milliseconds
         this.lastUpdateSent = 0;
 
         // buffer for interpolation
@@ -59,21 +58,19 @@ export class Game {
     setupSocketListeners() {
         this.socket.on('playerJoined', (playerData) => {
             console.log('Player joined:', playerData.id);
-            console.log('Player position:', playerData.position);
-
-            console.log(playerData.velocity);
-            const newPlayer = new OtherPlayer(
-                this.scene,
-                this.world,
-                new THREE.Vector2().copy(playerData.velocity),
-                new THREE.Vector2().copy(playerData.position)
-            );
-            this.otherPlayers.set(playerData.id, newPlayer);
+            if (!this.otherPlayers.has(playerData.id)) {
+                const newPlayer = new OtherPlayer(
+                    this.scene,
+                    this.world,
+                    new THREE.Vector2().copy(playerData.velocity),
+                    new THREE.Vector2().copy(playerData.position)
+                );
+                this.otherPlayers.set(playerData.id, newPlayer);
+            }
         });
 
         this.socket.on('playerMoved', (updateData) => {
             const player = this.otherPlayers.get(updateData.id);
-            //console.log('This is the updateData log', updateData);
             if (player) {
                 // store in postion buffer for interpolation
                 if (!this.positionBuffer.has(updateData.id)) {
@@ -87,8 +84,10 @@ export class Game {
                 });
                 // keeping only last second of buffer data
                 // shouldn't use a while loop, look back at this later
-                while (buffer.length > 0 && buffer[0].timestamp < performance.now() - 1000) {
-                    buffer.shift();
+                for (let i = 0; i < buffer.length; i++) {
+                    if (buffer[0].timestamp < performance.now() - 500) {
+                        buffer.shift();
+                    }
                 }
             }
         });
@@ -96,7 +95,7 @@ export class Game {
         this.socket.on('playerLeft', (playerId) => {
             const player = this.otherPlayers.get(playerId);
             if (player) {
-                console.log(`Player ${playerId} has left the game.`);
+                console.log(`Player left: ${playerId}`);
                 this.scene.remove(player.player);
                 this.otherPlayers.delete(playerId);
                 this.positionBuffer.delete(playerId);
@@ -129,12 +128,12 @@ export class Game {
 
     update() {
         const currentTime = performance.now();
-        const deltaTime = (currentTime - this.lastUpdateTime) / 1000;
+        const deltaTime = (currentTime - this.lastUpdateTime) / 500;
 
         this.player.update();
         this.world.update();
 
-        // sends updates at constant rate rather than every frame (every 50 milliseconds)
+        // sends updates at constant rate rather than every frame at the speed of update rate
         if (currentTime - this.lastUpdateSent > this.updateRate) {
             this.sendPlayerPosition();
             this.lastUpdateSent = currentTime;
@@ -153,7 +152,7 @@ export class Game {
 
     // updates all the other players in the otherPlayers map
     updateOtherPlayers(deltaTime) {
-        for (const [playerId, player] in this.otherPlayers) {
+        for (const [playerId, player] of this.otherPlayers) {
             const buffer = this.positionBuffer.get(playerId);
             if (buffer && buffer.length >= 2) {
                 this.interpolatePlayerPosition(player, buffer, deltaTime);
@@ -163,44 +162,54 @@ export class Game {
             player.position.add( player.velocity.clone().multiplyScalar(deltaTime) );
             player.player.position.copy(player.position);
 
-            console.log(`PRINTING PLAYER IN UPDATE OTHER PLAYERS ${player}`);
-            
+                        
             // update collisions
             player.update();
         }
     }
 
     interpolatePlayerPosition(player, buffer, deltaTime) {
-        const currentTime = performance.now();
+        let currentTime = performance.now();
 
         // the position buffer contains previous movements of other players along with a new movements
         // not yet rendered. We need to find the two movement positions we have the player currently
         // rendered
-        let previousUpdate = buffer[0];
-        let nextUpdate = buffer[1];
+        // work on this later
+        let previousUpdate = buffer[buffer.length - 2];
+        let nextUpdate = buffer[buffer.length - 1];
 
-        for (let i = 1; i < buffer.length; i++) {
+        //console.log(buffer.length);
+
+        //console.log("_________________________");
+        //console.log(`buffer[0]: ${buffer[0].timestamp} end of buffer: ${buffer[buffer.length - 1].timestamp}`)
+
+        for (let i = buffer.length - 1; i > 0; i--) {
             if (buffer[i].timestamp > currentTime) {
                 previousUpdate = buffer[i - 1];
                 nextUpdate = buffer[i];
-                break;
+                console.log("TRUKE NUKE!!!!!!!!!!!!!!!!!!");
+                
             }
         }
 
-        const total = nextUpdate.timestamp - previousUpdate.timestamp;
-        const progress = (currentTime - previousUpdate.timestamp) / total;
+        //let total = nextUpdate.timestamp - previousUpdate.timestamp;
+        //let progress = (currentTime - previousUpdate.timestamp) / total;
+        //console.log("_________________________________________")
+        //console.log(`Previous Update: ${previousUpdate.timestamp} Next Update: ${nextUpdate.timestamp} Difference: ${nextUpdate.timestamp - previousUpdate.timestamp}`);
+        //console.log(`Current time: ${currentTime} Difference from previous update: ${currentTime - previousUpdate.timestamp}`)
+        //console.log(`Total: ${total}  Progress = ${progress}`);
 
         // sets this vector to be the vector linearly interpolated between v1 and v2 by progress
         player.position.lerpVectors(
             previousUpdate.position,
             nextUpdate.position,
-            progress
+            0.2
         );
         // ditto
         player.velocity.lerpVectors(
             previousUpdate.velocity,
             nextUpdate.velocity,
-            progress
+            0.2
         );
     }
 

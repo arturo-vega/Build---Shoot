@@ -22,7 +22,7 @@ export class Player {
         this.mouse = new THREE.Vector2();
 
         // player cube
-        const geometry = new THREE.BoxGeometry(this.size.x, this.size.y, 1);
+        const geometry = new THREE.BoxGeometry(this.size.x, this.size.y, 0.25);
         const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
         this.player = new THREE.Mesh(geometry, material);
         this.player.position.set(this.position.x,this.position.y,0);

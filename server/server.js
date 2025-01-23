@@ -39,7 +39,7 @@ io.on('connection', (socket) => {
         players.set(socket.id, {
             position: position,
             velocity: velocity,
-            lastUpdate: Date.now()
+            lastUpdate: performance.now()
         });
 
         // Send new player info to everyone else
@@ -50,7 +50,7 @@ io.on('connection', (socket) => {
         });
 
         // Send existing player info to new player
-        players.forEach((id, player) => { ///////// check this
+        players.forEach((player, id) => { ///////// check this
             if (id !== socket.id) {
                 socket.emit('playerJoined', {
                     id: id,
@@ -67,7 +67,7 @@ io.on('connection', (socket) => {
         if (player) {
             player.position = updateData.position;
             player.velocity = updateData.velocity;
-            player.lastUpdate = Date.now();
+            player.lastUpdate = performance.now();
 
             // broadcast update to other players
             socket.broadcast.emit('playerMoved', {
