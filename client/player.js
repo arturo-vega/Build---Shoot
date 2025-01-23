@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 
 export class Player {
-    constructor(scene, world, camera) {
+    constructor(scene, world, camera, startPosition) {
         this.world = world;
         this.camera = camera;
         this.onGround = false;
         this.velocity = {x: 0, y: 0};
         this.size = {x: 0.75, y: 1.75};
-        this.position = {x: 10, y: 30};
+        this.position = startPosition;
         this.previousMousePosition = {x:10, y:10};
         this.currentMousePosition = {x:0, y:0};
         this.maxVelocity = 0.3;

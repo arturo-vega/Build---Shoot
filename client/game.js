@@ -20,8 +20,10 @@ export class Game {
         }
         this.renderer.setSize(window.innerWidth, window.innerHeight);
 
+        const playerStartPosition = new THREE.Vector2(10,10);
+
         this.world = new World(this.scene);
-        this.player = new Player(this.scene, this.world, this.camera);
+        this.player = new Player(this.scene, this.world, this.camera, playerStartPosition);
 
         // send initial player information to the server
         this.socket.emit('playerJoin', this.player.position, this.player.velocity);
@@ -58,6 +60,8 @@ export class Game {
         this.socket.on('playerJoined', (playerData) => {
             console.log('Player joined:', playerData.id);
             console.log('Player position:', playerData.position);
+
+            console.log(playerData.velocity);
             const newPlayer = new OtherPlayer(
                 this.scene,
                 this.world,
@@ -69,7 +73,7 @@ export class Game {
 
         this.socket.on('playerMoved', (updateData) => {
             const player = this.otherPlayers.get(updateData.id);
-            console.log('This is the updateData log', updateData);
+            //console.log('This is the updateData log', updateData);
             if (player) {
                 // store in postion buffer for interpolation
                 if (!this.positionBuffer.has(updateData.id)) {
@@ -78,7 +82,7 @@ export class Game {
                 const buffer = this.positionBuffer.get(updateData.id);
                 buffer.push({
                     position: new THREE.Vector2().copy(updateData.position),
-                    velocity: new THREE.Vector2().copy(updateData.velcoty),
+                    velocity: new THREE.Vector2().copy(updateData.velocity),
                     timestamp: performance.now()
                 });
                 // keeping only last second of buffer data
@@ -149,7 +153,7 @@ export class Game {
 
     // updates all the other players in the otherPlayers map
     updateOtherPlayers(deltaTime) {
-        for (const [playerId, player] of this.otherPlayers) {
+        for (const [playerId, player] in this.otherPlayers) {
             const buffer = this.positionBuffer.get(playerId);
             if (buffer && buffer.length >= 2) {
                 this.interpolatePlayerPosition(player, buffer, deltaTime);
@@ -158,6 +162,8 @@ export class Game {
             // apply prediction based on velocity
             player.position.add( player.velocity.clone().multiplyScalar(deltaTime) );
             player.player.position.copy(player.position);
+
+            console.log(`PRINTING PLAYER IN UPDATE OTHER PLAYERS ${player}`);
             
             // update collisions
             player.update();
@@ -187,7 +193,7 @@ export class Game {
         // sets this vector to be the vector linearly interpolated between v1 and v2 by progress
         player.position.lerpVectors(
             previousUpdate.position,
-            nextUpdate.positon,
+            nextUpdate.position,
             progress
         );
         // ditto

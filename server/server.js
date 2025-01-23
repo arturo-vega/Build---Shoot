@@ -50,7 +50,7 @@ io.on('connection', (socket) => {
         });
 
         // Send existing player info to new player
-        players.forEach((player, id) => { ///////// check this
+        players.forEach((id, player) => { ///////// check this
             if (id !== socket.id) {
                 socket.emit('playerJoined', {
                     id: id,
