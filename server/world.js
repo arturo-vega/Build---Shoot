@@ -1,10 +1,17 @@
 import * as THREE from 'three';
 
 export class World {
-    constructor(scene, worldState) {
+    constructor(scene) {
         this.scene = scene;
-        this.blocks = worldState;
+        this.blocks = new Map();
         this.blockGhosts = new Map();
+
+        // creates initial blocks for the stage
+        for (let i = 0; i < 100; i++) {
+            for (let j = 0; j < 5; j++) {
+                this.createNonPlayerBlock(i, j);
+            }
+        }
     }
 
     createNonPlayerBlock(x,y) {
@@ -20,7 +27,6 @@ export class World {
 
         block.castShadow = true;
         block.receiveShadow = true;
-        this.scene.add(block);
 
         const key = `${x},${y}`;
         this.blocks.set(key, block);
@@ -42,7 +48,6 @@ export class World {
 
             block.castShadow = true;
             block.receiveShadow = true;
-            this.scene.add(block);
 
             const key = `${x},${y}`;
             this.blocks.set(key, block);
@@ -56,14 +61,12 @@ export class World {
             if (block) {
                 block.geometry.dispose();
                 block.material.dispose();
-                this.scene.remove(block);
                 this.blockGhosts.delete(key);
             }
         } else {
             const key = `${x},${y}`;
             const block = this.blockMap.get(key);
             if (block) {
-                this.scene.remove(block);
                 this.blockMap.delete(key);
             }
         }

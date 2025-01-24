@@ -3,6 +3,7 @@ import { createServer } from 'http';
 import path from 'path';
 import { Server } from 'socket.io';
 import { fileURLToPath } from 'url';
+import { World } from './world.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,12 +28,18 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../client/index.html'));
 });
 
-
+const world = new World();
 let players = new Map();
+console.log(world.blocks.size);
 
-// Socket.IO connection handling
+// this handles all the interactions of a client with the server
 io.on('connection', (socket) => {
     console.log('A user connected', socket.id);
+
+    // send the world state to a player who joins immediately
+    // can't send maps over socket so need to do this first
+    let transitBlocks = JSON.stringify(Array.from(world.blocks));
+    socket.emit('initialWorldState', transitBlocks);
 
     // When new player joins get player id and set player position info
     socket.on('playerJoin', (position, velocity) => {

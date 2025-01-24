@@ -19,9 +19,19 @@ export class Game {
         }
         this.renderer.setSize(window.innerWidth, window.innerHeight);
 
-        const playerStartPosition = new THREE.Vector2(10,10);
+        // get initial world state
+        // -----------------------------------------------------------------------------------------
+        // FIX THIS, THIS NEEDS TO LOAD BEFORE THE PLAYER DOES!!!!
+        // -----------------------------------------------------------------------------------------
 
-        this.world = new World(this.scene);
+        this.socket.on('initialWorldState', (worldState) => {
+            let worldMap = new Map(JSON.parse(worldState));
+            this.world = new World(this.scene, worldMap);
+            console.log(`World loaded ${worldMap.size} blocks.`);
+        });
+
+        console.log("I'm about to spawn in the player!");
+        const playerStartPosition = new THREE.Vector2(10,10);
         this.player = new Player(this.scene, this.world, this.camera, playerStartPosition);
 
         // send initial player information to the server
@@ -84,11 +94,8 @@ export class Game {
                 });
                 // keeping only last second of buffer data
                 // shouldn't use a while loop, look back at this later
-                for (let i = 0; i < buffer.length; i++) {
-                    if (buffer[0].timestamp < performance.now() - 500) {
-                        buffer.shift();
-                    }
-                }
+                buffer = buffer.filter(entry => entry.timestamp > performance.now() - 500);
+                
             }
         });
 
