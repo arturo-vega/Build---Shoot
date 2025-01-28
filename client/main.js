@@ -5,10 +5,19 @@ import { Game } from './game.js';
 const socket = io('http://localhost:3000');
 
 
-socket.on('connect', () => {
-    const game = new Game(socket);
-});
+async function initializeGame() {
+    try {
+        const game = await new Game(socket);
+        // Additional setup after game is fully loaded
+        game.setupEventListeners();
+        game.animate();
+    } catch (error) {
+        console.error('Game initialization failed:', error);
+    }
+}
 
+
+initializeGame();
 
 
 

@@ -130,6 +130,8 @@ export class Player {
         };
 
         for (let block of nearbyBlocks) {
+            //console.log(block);
+            //console.log(`Block: ${block} Bounding block: ${block.boundingBox}`);
             if (this.playerBB.intersectsBox(block.boundingBox)) {
                 const collision = this.getCollisionDirection(this.playerBB, block.boundingBox);
 

@@ -3,8 +3,29 @@ import * as THREE from 'three';
 export class World {
     constructor(scene, worldState) {
         this.scene = scene;
-        this.blocks = worldState;
+        this.worldState = worldState;
         this.blockGhosts = new Map();
+        this.blocksBB = new Map();
+        this.blocks = new Map();
+
+        const loader = new THREE.ObjectLoader();
+
+        // create the bounding block for all the blocks sent to the client world
+        // the information of the world data is a JSON map so we need to use the ObjectLoader's
+        // JSON parse funcitonality to turn it into a 3dObject
+        for (const [key, blockData] of this.worldState) {
+            
+            const block = loader.parse(blockData)
+
+            const blockBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
+            blockBB.setFromObject(block);
+            block.boundingBox = blockBB;
+
+            this.blocks.set(key,block);
+            this.blocksBB.set(key, blockBB);
+
+            this.scene.add(block);
+        };
     }
 
     createNonPlayerBlock(x,y) {

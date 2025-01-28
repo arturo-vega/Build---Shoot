@@ -15,7 +15,7 @@ export class Game {
         try {
             this.renderer = new THREE.WebGLRenderer({canvas: canvas})
         } catch {
-            alert("WebGL failed to initialize. Try restarting your browser or check your browser's compatibiliy.");
+            alert("WebGL failed to initialize. Try restarting your browser or check your browser's compatibility.");
         }
         this.renderer.setSize(window.innerWidth, window.innerHeight);
 
@@ -24,44 +24,79 @@ export class Game {
         // FIX THIS, THIS NEEDS TO LOAD BEFORE THE PLAYER DOES!!!!
         // -----------------------------------------------------------------------------------------
 
-        this.socket.on('initialWorldState', (worldState) => {
-            let worldMap = new Map(JSON.parse(worldState));
-            this.world = new World(this.scene, worldMap);
-            console.log(`World loaded ${worldMap.size} blocks.`);
+        return new Promise((resolve, reject) => {
+            // Store the resolve and reject functions as instance methods
+            this.resolveWorldLoad = resolve;
+            this.rejectWorldLoad = reject;
+    
+            // Track world loading state
+            this.worldLoaded = false;
+    
+            // Listen for initial world state
+            this.socket.on('initialWorldState', (worldState) => {
+                try {
+                    let worldMap = new Map(JSON.parse(worldState));
+                    
+                    this.world = new World(this.scene, worldMap);
+
+
+                    const block = this.world.blocks.get(`${4},${4}`);
+                    
+                    console.log(`World loaded ${worldMap.size} blocks.`);
+
+                    console.log("About to load player");
+                    
+                    // Create player after world is loaded
+                    const playerStartPosition = new THREE.Vector2(10,10);
+                    this.player = new Player(
+                        this.scene,
+                        this.world,
+                        this.camera,
+                        playerStartPosition
+                    );
+
+                    console.log("Adding scene");
+                    this.scene.add(this.camera);
+            
+                    // sun light
+                    const directionalLight = new THREE.DirectionalLight( 0xffffff, 1.2 );
+                    directionalLight.position.set(-1,1,1);
+                    this.scene.add( directionalLight );
+            
+                    const light = new THREE.AmbientLight( 0x404040 ); // soft white light
+                    this.scene.add( light );
+            
+                    // time stamp for interpolation
+                    this.lastUpdateTime = performance.now();
+            
+                    this.updateRate = 15; // milliseconds
+                    this.lastUpdateSent = 0;
+            
+                    // buffer for interpolation
+                    this.positionBuffer = new Map();
+            
+                    this.setupSocketListeners()
+                    this.setupEventListeners();
+                    this.animate();
+    
+                    // Mark world as loaded
+                    this.worldLoaded = true;
+    
+                    // Resolve the promise with the game instance
+                    this.resolveWorldLoad(this);
+                } catch (error) {
+                    // Reject if world creation fails
+                    this.rejectWorldLoad(error);
+                }
+            });
+    
+            // Set up timeout for world loading
+            setTimeout(() => {
+                if (!this.worldLoaded) {
+                    this.rejectWorldLoad(new Error("Failed to load world within 5 seconds"));
+                }
+            }, 5000);
         });
-
-        console.log("I'm about to spawn in the player!");
-        const playerStartPosition = new THREE.Vector2(10,10);
-        this.player = new Player(this.scene, this.world, this.camera, playerStartPosition);
-
-        // send initial player information to the server
-        this.socket.emit('playerJoin', this.player.position, this.player.velocity);
-
-        this.camera.position.set(this.player.position.x, this.player.position.y, 10);
-        this.camera.lookAt(this.player.position.x,this.player.position.y,0);
-
-        this.scene.add(this.camera);
-
-        // sun light
-        const directionalLight = new THREE.DirectionalLight( 0xffffff, 1.2 );
-        directionalLight.position.set(-1,1,1);
-        this.scene.add( directionalLight );
-
-        const light = new THREE.AmbientLight( 0x404040 ); // soft white light
-        this.scene.add( light );
-
-        // time stamp for interpolation
-        this.lastUpdateTime = performance.now();
-
-        this.updateRate = 15; // milliseconds
-        this.lastUpdateSent = 0;
-
-        // buffer for interpolation
-        this.positionBuffer = new Map();
-
-        this.setupSocketListeners()
-        this.setupEventListeners();
-        this.animate();
         
     }
 
