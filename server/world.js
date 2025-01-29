@@ -65,9 +65,9 @@ export class World {
             }
         } else {
             const key = `${x},${y}`;
-            const block = this.blockMap.get(key);
+            const block = this.blocks.get(key);
             if (block) {
-                this.blockMap.delete(key);
+                this.blocks.delete(key);
             }
         }
     }

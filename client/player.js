@@ -282,9 +282,16 @@ export class Player {
             this.mouseRaycaster.ray.direction
         );
 
-        this.world.createBlock(Math.floor(intersectionPoint.x), Math.floor(intersectionPoint.y),this.playerBB);
+        const x = Math.floor(intersectionPoint.x);
+        const y = Math.floor(intersectionPoint.y);
 
-        
+        if (this.world.isValidSpot(x,y)) {
+            this.world.createBlock(x, y,this.playerBB);
+        } else {
+            this.world.removeBlock(x,y);
+        }
+
+
         //console.log(`Intersect point: x:${Math.floor(intersectionPoint.x)} y:${Math.floor(intersectionPoint.y)}`);
     }
 

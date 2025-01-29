@@ -8,7 +8,10 @@ export class World {
         this.blocksBB = new Map();
         this.blocks = new Map();
 
-        this.blockPlaced = true;
+        this.blockAdded = false;
+        this.blockRemoved = false;
+        this.blockDamaged = false;
+
         this.lastBlockModified = {x: 0, y: 0};
 
         const loader = new THREE.ObjectLoader();
@@ -72,7 +75,7 @@ export class World {
             const key = `${x},${y}`;
             this.blocks.set(key, block);
 
-            this.blockPlaced = true;
+            this.blockAdded = true;
             this.lastBlockModified = {
                 x: block.position.x,
                 y: block.position.y
@@ -81,8 +84,8 @@ export class World {
     }
 
     removeBlock(x,y,type) {
+        const key = `${x},${y}`;
         if (type === 'ghost') {
-            const key = `${x},${y}`;
             let block = this.blockGhosts.get(key);
             if (block) {
                 block.geometry.dispose();
@@ -90,12 +93,18 @@ export class World {
                 this.scene.remove(block);
                 this.blockGhosts.delete(key);
             }
+        // remove block
         } else {
-            const key = `${x},${y}`;
-            const block = this.blockMap.get(key);
+            let block = this.blocks.get(key);
             if (block) {
                 this.scene.remove(block);
-                this.blockMap.delete(key);
+                this.blocks.delete(key);
+
+                this.blockRemoved = true;
+                this.lastBlockModified = {
+                    x: x,
+                    y: y
+                }
             }
         }
     }

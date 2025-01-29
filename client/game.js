@@ -132,7 +132,7 @@ export class Game {
                 this.world.createNonPlayerBlock(blockData.x, blockData.y);
             }
             else if (blockData.updateType === 'removed') {
-                // do something else
+                this.world.removeBlock(blockData.x, blockData.y);
             }
             else if (blockData.updateType === 'damaged') {
                 // do something else
@@ -151,9 +151,16 @@ export class Game {
     }
 
     sendBlockInformation() {
-        if (this.world.blockPlaced === true) {
+        if (this.world.blockAdded) {
             this.socket.emit('blockModified', {
                 updateType: 'added',
+                x: this.world.lastBlockModified.x,
+                y: this.world.lastBlockModified.y
+            });
+        }
+        else if (this.world.blockRemoved) {
+            this.socket.emit('blockModified', {
+                updateType: 'removed',
                 x: this.world.lastBlockModified.x,
                 y: this.world.lastBlockModified.y
             });
@@ -201,7 +208,9 @@ export class Game {
         this.camera.lookAt(this.player.position.x,this.player.position.y,0);
 
         this.sendBlockInformation();
-        this.world.blockPlaced = false;
+        this.world.blockAdded = false;
+        this.world.blockRemoved = false;
+        this.world.blockDamaged = false;
         
         this.lastUpdateTime = currentTime;
     }

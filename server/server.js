@@ -105,7 +105,12 @@ io.on('connection', (socket) => {
             });
         }
         else if (blockData.updateType === 'removed') {
-            // do something else
+            world.removeBlock(x, y);
+            socket.broadcast.emit('mapUpdated', {
+                updateType: 'removed',
+                x: x,
+                y: y
+            });
         }
         else if (blockData.updateType === 'damaged') {
             // do something else
