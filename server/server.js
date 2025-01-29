@@ -28,6 +28,8 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../client/index.html'));
 });
 
+//const loader = new THREE.ObjectLoader();
+
 const world = new World();
 let players = new Map();
 console.log(world.blocks.size);
@@ -84,6 +86,31 @@ io.on('connection', (socket) => {
                 timestamp: updateData.timestamp
             });
         }
+    });
+
+    // handle block changes 
+    // !!! This will need to change when we change how blocks are handled
+    socket.on('blockModified', (blockData) => {
+
+        const x = blockData.x
+        const y = blockData.y
+
+        if (blockData.updateType === 'added') {
+            // change this at some point so that we don't have two methods for player and non player blocks
+            world.createNonPlayerBlock(x, y);
+            socket.broadcast.emit('mapUpdated', {
+                updateType: 'added',
+                x: x,
+                y: y
+            });
+        }
+        else if (blockData.updateType === 'removed') {
+            // do something else
+        }
+        else if (blockData.updateType === 'damaged') {
+            // do something else
+        }
+
     });
 
     socket.on('disconnect', () => {

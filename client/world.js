@@ -8,6 +8,9 @@ export class World {
         this.blocksBB = new Map();
         this.blocks = new Map();
 
+        this.blockPlaced = true;
+        this.lastBlockModified = {x: 0, y: 0};
+
         const loader = new THREE.ObjectLoader();
 
         // create the bounding block for all the blocks sent to the client world
@@ -47,6 +50,7 @@ export class World {
         this.blocks.set(key, block);
     }
 
+
     createBlock(x, y, playerBB) {
         const ghostBlock = this.blockGhosts.get(`${x},${y}`);
         const ghostBB = ghostBlock.boundingBox;
@@ -67,6 +71,12 @@ export class World {
 
             const key = `${x},${y}`;
             this.blocks.set(key, block);
+
+            this.blockPlaced = true;
+            this.lastBlockModified = {
+                x: block.position.x,
+                y: block.position.y
+            }
         }
     }
 

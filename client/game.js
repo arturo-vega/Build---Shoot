@@ -19,11 +19,6 @@ export class Game {
         }
         this.renderer.setSize(window.innerWidth, window.innerHeight);
 
-        // get initial world state
-        // -----------------------------------------------------------------------------------------
-        // FIX THIS, THIS NEEDS TO LOAD BEFORE THE PLAYER DOES!!!!
-        // -----------------------------------------------------------------------------------------
-
         return new Promise((resolve, reject) => {
             // Store the resolve and reject functions as instance methods
             this.resolveWorldLoad = resolve;
@@ -39,11 +34,7 @@ export class Game {
                     
                     this.world = new World(this.scene, worldMap);
 
-
-                    const block = this.world.blocks.get(`${4},${4}`);
-                    
                     console.log(`World loaded ${worldMap.size} blocks.`);
-
                     console.log("About to load player");
                     
                     // Create player after world is loaded
@@ -54,6 +45,8 @@ export class Game {
                         this.camera,
                         playerStartPosition
                     );
+
+                    this.socket.emit('playerJoin', this.player.position, this.player.velocity);
 
                     console.log("Adding scene");
                     this.scene.add(this.camera);
@@ -75,7 +68,7 @@ export class Game {
                     // buffer for interpolation
                     this.positionBuffer = new Map();
             
-                    this.setupSocketListeners()
+                    this.setupSocketListeners();
                     this.setupEventListeners();
                     this.animate();
     
@@ -129,8 +122,20 @@ export class Game {
                 });
                 // keeping only last second of buffer data
                 // shouldn't use a while loop, look back at this later
-                buffer = buffer.filter(entry => entry.timestamp > performance.now() - 500);
+                this.positionBuffer.set(updateData.id, buffer.filter(entry => entry.timestamp > performance.now() - 500));
                 
+            }
+        });
+
+        this.socket.on('mapUpdated', (blockData) => {
+            if (blockData.updateType === 'added') {
+                this.world.createNonPlayerBlock(blockData.x, blockData.y);
+            }
+            else if (blockData.updateType === 'removed') {
+                // do something else
+            }
+            else if (blockData.updateType === 'damaged') {
+                // do something else
             }
         });
 
@@ -145,6 +150,15 @@ export class Game {
         });
     }
 
+    sendBlockInformation() {
+        if (this.world.blockPlaced === true) {
+            this.socket.emit('blockModified', {
+                updateType: 'added',
+                x: this.world.lastBlockModified.x,
+                y: this.world.lastBlockModified.y
+            });
+        }
+    }
     sendPlayerPosition() {
         this.socket.emit('playerUpdate', {
             position: this.player.position,
@@ -185,6 +199,9 @@ export class Game {
         // update camera to follow player
         this.camera.position.set(this.player.position.x, this.player.position.y, 7);
         this.camera.lookAt(this.player.position.x,this.player.position.y,0);
+
+        this.sendBlockInformation();
+        this.world.blockPlaced = false;
         
         this.lastUpdateTime = currentTime;
     }

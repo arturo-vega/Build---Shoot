@@ -283,6 +283,8 @@ export class Player {
         );
 
         this.world.createBlock(Math.floor(intersectionPoint.x), Math.floor(intersectionPoint.y),this.playerBB);
+
+        
         //console.log(`Intersect point: x:${Math.floor(intersectionPoint.x)} y:${Math.floor(intersectionPoint.y)}`);
     }
 
