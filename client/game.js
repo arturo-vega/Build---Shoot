@@ -56,8 +56,10 @@ export class Game {
                     directionalLight.position.set(-1,1,1);
                     this.scene.add( directionalLight );
             
-                    const light = new THREE.AmbientLight( 0x404040 ); // soft white light
+                    const light = new THREE.AmbientLight( 0x4A6A8C ); // soft white light
                     this.scene.add( light );
+
+                    this.loadSkyBox();
             
                     // time stamp for interpolation
                     this.lastUpdateTime = performance.now();
@@ -120,8 +122,7 @@ export class Game {
                     velocity: new THREE.Vector2().copy(updateData.velocity),
                     timestamp: performance.now()
                 });
-                // keeping only last second of buffer data
-                // shouldn't use a while loop, look back at this later
+                // keeping only last half second of buffer data
                 this.positionBuffer.set(updateData.id, buffer.filter(entry => entry.timestamp > performance.now() - 500));
                 
             }
@@ -287,5 +288,28 @@ export class Game {
             velocity: this.player.velocity,
             timestamp: performance.now()
         });
+    }
+
+
+    loadSkyBox() {
+        const loader = new THREE.CubeTextureLoader();
+        loader.setPath('/skybox/');
+
+        const textureCube = loader.load ( [
+// load order: right, left, top, bottom, front, back
+            'skyboxRT.png', 'skyboxLF.png',
+            'skyboxUP.png', 'skyboxDN.png',
+            'skyboxFT.png', 'skyboxBK.png'
+        ] );
+
+
+        this.scene.background = textureCube;
+
+        // environment map not used but could be used for reflecting materials off the skybox later
+        const material = new THREE.MeshBasicMaterial( { 
+            color: 0xffffff,
+            envMap: textureCube
+        });
+
     }
 }

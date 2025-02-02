@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Item } from '/item.js';
 
 export class Player {
     constructor(scene, world, camera, startPosition) {
@@ -20,6 +21,13 @@ export class Player {
 
         this.mouseRaycaster = new THREE.Raycaster();
         this.mouse = new THREE.Vector2();
+
+        this.items = [
+            new Item('placer', scene, world, this),
+            new Item('remover', scene, world, this),
+            new Item('weapon', scene, world, this)
+        ];
+        this.currentItemIndex = 0;
 
         // player cube
         const geometry = new THREE.BoxGeometry(this.size.x, this.size.y, 0.25);
@@ -201,6 +209,17 @@ export class Player {
         }
     }
 
+    switchItem(index) {
+        if (index >= 0 && index < this.items.length) {
+            console.log('Item switched: ', index + 1);
+            this.currentItemIndex = index;
+        }
+    }
+
+    useItem() {
+        this.items[this.currentItemIndex].use();
+    }
+
     handleInput() {
         if (this.keys['ArrowLeft'] || this.keys['a']) {
             if (this.velocity.x <= this.minVelocity) {
@@ -222,6 +241,14 @@ export class Player {
             this.velocity.y = this.jumpSpeed;
             this.onGround = false;
         }
+
+        if (this.keys['1']) {
+            this.switchItem(0);
+        } else if (this.keys['2']) {
+            this.switchItem(1);
+        } else if (this.keys['3']) {
+            this.switchItem(2);
+        }
     }
 
     setupControls() {
@@ -235,6 +262,8 @@ export class Player {
 
         window.addEventListener('mousemove', this.onMouseMove.bind(this), true);
         window.addEventListener('click', this.onClick.bind(this), false);
+
+
     }
 
     onMouseMove(event) {
@@ -274,6 +303,7 @@ export class Player {
     }
 
     onClick() {
+        /*
         this.mouseRaycaster.setFromCamera(this.mouse, this.camera);
         this.updateGhost();
 
@@ -290,6 +320,9 @@ export class Player {
         } else {
             this.world.removeBlock(x,y);
         }
+        */
+
+        this.useItem();
 
 
         //console.log(`Intersect point: x:${Math.floor(intersectionPoint.x)} y:${Math.floor(intersectionPoint.y)}`);
