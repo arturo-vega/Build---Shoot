@@ -306,7 +306,7 @@ export class Game {
         this.scene.background = textureCube;
 
         // environment map not used but could be used for reflecting materials off the skybox later
-        const material = new THREE.MeshBasicMaterial( { 
+        const material = new THREE.MeshBasicMaterial( {
             color: 0xffffff,
             envMap: textureCube
         });

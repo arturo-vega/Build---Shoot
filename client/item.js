@@ -17,6 +17,7 @@ export class Item {
                 this.removeBlock();
                 break;
             case 'weapon':
+                this.castRay();
                 break;
             default:
                 console.error('Unknown item type: ', this.type);
@@ -52,20 +53,33 @@ export class Item {
     }
 
     castRay() {
-        const raycaster = new THREE.Raycaster();
-        raycaster.setFromCamera(this.player.mouse, this.player.camera);
+        const intersectPoint = this.getRayPlaneIntersection(
+            this.player.camera,
+            this.player.mouseRaycaster.ray.direction
+        );
 
-        const intersects = raycaster.intersectObject(this.scene.children);
+        const rayDirection = new THREE.Vector3(
+            intersectPoint.x - this.player.position.x,
+            intersectPoint.y - this.player.position.y,
+            0
+        ).normalize();
 
+        const rayStart = new THREE.Vector3(this.player.position.x, this.player.position.y, 0);
+        const raycaster = new THREE.Raycaster(rayStart, rayDirection);
+
+        const intersects = raycaster.intersectObjects(this.scene.children);
+        
         if (intersects.length > 0) {
             const firstIntersected = intersects[0];
             console.log('Ray hit: ', firstIntersected.object);
 
-            // --------------- add more?
+            // --------------- add more
         }
     }
 
+    getRayDirection(clickPoint) {
 
+    }
     // used for finding out where to place blocks in the world
     getRayPlaneIntersection(camera, rayDirection) {
         // intersection at point z = 0
