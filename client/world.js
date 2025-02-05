@@ -1,11 +1,11 @@
 import * as THREE from 'three';
+import { Block } from './block';
 
 export class World {
     constructor(scene, worldState) {
         this.scene = scene;
-        this.worldState = worldState;
         this.blockGhosts = new Map();
-        this.blocksBB = new Map();
+        //this.blocksBB = new Map();
         this.blocks = new Map();
 
         this.blockAdded = false;
@@ -14,47 +14,41 @@ export class World {
 
         this.lastBlockModified = {x: 0, y: 0};
 
-        const loader = new THREE.ObjectLoader();
+        for (const [key, blockData] of worldState) {
 
-        // create the bounding block for all the blocks sent to the client world
-        // the information of the world data is a JSON map so we need to use the ObjectLoader's
-        // JSON parse funcitonality to turn it into a 3dObject
-        for (const [key, blockData] of this.worldState) {
-            
-            const block = loader.parse(blockData)
-
-            const blockBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
-            blockBB.setFromObject(block);
-            block.boundingBox = blockBB;
+            const block = new Block(blockData.x, blockData.y, blockData.type, blockData.health);
 
             this.blocks.set(key,block);
-            this.blocksBB.set(key, blockBB);
-
-            this.scene.add(block);
+            this.scene.add(block.mesh);
         };
     }
 
-    createNonPlayerBlock(x,y) {
-        const geometry = new THREE.BoxGeometry(1,1,1);
-        const material = new THREE.MeshPhongMaterial({color: 0x8B4513 });
-        const block = new THREE.Mesh(geometry, material);
 
-        block.position.set(x, y, 0);
-        
-        const blockBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
-        blockBB.setFromObject(block);
-        block.boundingBox = blockBB;
-
-        block.castShadow = true;
-        block.receiveShadow = true;
-        this.scene.add(block);
-
+    createBlock(x, y, type = 'wood', health, playerBB = null) {
         const key = `${x},${y}`;
+
+        if (!this.isValidSpot(x,y)) return null;
+
+        if (playerBB) {
+            const ghostBlock = this.blockGhosts.get(key);
+            if (ghostBlock && playerBB.intersectsBox(ghostBlock.boundingBox)) {
+                return null;
+            }
+        }
+
+        const block = new Block(x, y, type, health);
         this.blocks.set(key, block);
-    }
+        this.scene.add(block.mesh);
 
+        // block.updateNeighbors();
 
-    createBlock(x, y, playerBB) {
+        this.blockAdded = true;
+
+        this.lastBlockModified = { x , y };
+
+        return block;
+
+        /* OLD BLOCK CREATION METHOD
         const ghostBlock = this.blockGhosts.get(`${x},${y}`);
         const ghostBB = ghostBlock.boundingBox;
         if (this.isValidSpot(x,y) && !playerBB.intersectsBox(ghostBB)) {
@@ -81,6 +75,23 @@ export class World {
                 y: block.position.y
             }
         }
+        */
+    }
+
+    damageBlock(x, y, amount) {
+        const block = this.getBlockAt(x, y);
+        if (!block) return false;
+
+        const destroyed = block.damage(amount);
+        this.blockDamaged = true;
+
+        if (destroyed) {
+            this.removeBlock(x, y);
+        }
+
+        this.blockDamaged = true;
+
+        return destroyed;
     }
 
     removeBlock(x,y,type) {
@@ -97,7 +108,8 @@ export class World {
         } else {
             let block = this.blocks.get(key);
             if (block) {
-                this.scene.remove(block);
+                block.destroy();
+                this.scene.remove(block.mesh);
                 this.blocks.delete(key);
 
                 this.blockRemoved = true;
@@ -107,6 +119,10 @@ export class World {
                 }
             }
         }
+    }
+
+    getBlockAt(x, y) {
+        return this.blocks.get(`${x},${y}`);
     }
 
     // used to check blocks around player for collision detection

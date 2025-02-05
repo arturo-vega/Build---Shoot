@@ -166,6 +166,11 @@ export class Game {
                 y: this.world.lastBlockModified.y
             });
         }
+        else if (this.world.blockDamaged) {
+            this.socket.emit('damaged', {
+                // do something ---------------------------------------------------
+            });
+        }
     }
     sendPlayerPosition() {
         this.socket.emit('playerUpdate', {

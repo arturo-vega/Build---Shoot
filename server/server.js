@@ -97,7 +97,7 @@ io.on('connection', (socket) => {
 
         if (blockData.updateType === 'added') {
             // change this at some point so that we don't have two methods for player and non player blocks
-            world.createNonPlayerBlock(x, y);
+            world.createBlock(x, y);
             socket.broadcast.emit('mapUpdated', {
                 updateType: 'added',
                 x: x,

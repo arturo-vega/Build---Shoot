@@ -68,7 +68,7 @@ export class Item {
         const raycaster = new THREE.Raycaster(rayStart, rayDirection);
 
         const intersects = raycaster.intersectObjects(this.scene.children);
-        
+
         if (intersects.length > 0) {
             const firstIntersected = intersects[0];
             console.log('Ray hit: ', firstIntersected.object);
@@ -77,9 +77,6 @@ export class Item {
         }
     }
 
-    getRayDirection(clickPoint) {
-
-    }
     // used for finding out where to place blocks in the world
     getRayPlaneIntersection(camera, rayDirection) {
         // intersection at point z = 0
