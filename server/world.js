@@ -39,9 +39,27 @@ export class World {
 
         if (destroyed) {
             this.removeBlock(x, y);
+            this.blockRemoved = true;
+        } else {
+            this.blockDamaged = true;
+            this.damagedBlockHealth = block.health;
         }
 
         return destroyed;
+    }
+
+    updateBlock(x, y, type) {
+        const block = this.getBlockAt(x, y);
+        if (block) {
+            block.updateBlock(type, damage);
+        }
+    }
+
+    updateBlockHealth(x, y, health) {
+        const block = this.getBlockAt(x, y);
+        if (block) {
+            block.updateBlockHealth(health);
+        }
     }
 
     removeBlock(x,y,type) {

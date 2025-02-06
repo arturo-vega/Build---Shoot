@@ -54,6 +54,16 @@ export class Block {
         return mesh;
     }
 
+    updateBlockHealth(health) {
+        this.health = health;
+    }
+    updateBlockType(type) {
+        if (type !== this.type) {
+            this.type = type;
+            this.health = blockTypes[type].health;
+        }
+    }
+
     updateBoundingBox() {
         this.boundingBox = new THREE.Box3();
         this.boundingBox.setFromObject(this.mesh);
@@ -66,6 +76,8 @@ export class Block {
 
         const damagePercentage = this.health / this.maxHealth;
         this.mesh.material.opacity = 0.5 + (damagePercentage * 0.5);
+
+        console.log(`Block health: ${this.health}`);
 
         // return true if block is destroyed
         return this.health === 0;

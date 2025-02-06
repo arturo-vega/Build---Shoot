@@ -52,6 +52,17 @@ export class Block {
         return mesh;
     }
 
+    updateBlock(type) {
+        if (type !== this.type) {
+            this.type = type;
+            this.health = blockTypes[type].health;
+        } 
+    }
+
+    updateBlockHealth(health) {
+        this.health = health;
+    }
+
     updateBoundingBox() {
         this.boundingBox = new THREE.Box3();
         this.boundingBox.setFromObject(this.mesh);

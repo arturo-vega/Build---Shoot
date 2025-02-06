@@ -76,6 +76,7 @@ io.on('connection', (socket) => {
         if (player) {
             player.position = updateData.position;
             player.velocity = updateData.velocity;
+            player.health = updateData.health;
             player.lastUpdate = performance.now();
 
             // broadcast update to other players
@@ -83,6 +84,7 @@ io.on('connection', (socket) => {
                 id: socket.id,
                 position: updateData.position,
                 velocity: updateData.velocity,
+                health: updateData.health,
                 timestamp: updateData.timestamp
             });
         }
@@ -113,7 +115,14 @@ io.on('connection', (socket) => {
             });
         }
         else if (blockData.updateType === 'damaged') {
-            // do something else
+            world.updateBlockHealth(x, y, blockData.health)
+            socket.broadcast.emit('mapUpdated', {
+                updateType: 'damaged',
+                x: x,
+                y: y,
+                health: blockData.health
+            });
+            
         }
 
     });

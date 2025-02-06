@@ -109,6 +109,7 @@ export class Game {
             }
         });
 
+        // probably will use this to update player position and everything else
         this.socket.on('playerMoved', (updateData) => {
             const player = this.otherPlayers.get(updateData.id);
             if (player) {
@@ -116,6 +117,10 @@ export class Game {
                 if (!this.positionBuffer.has(updateData.id)) {
                     this.positionBuffer.set(updateData.id, []);
                 }
+
+                // update the player health
+                player.health = updateData.health;
+
                 const buffer = this.positionBuffer.get(updateData.id);
                 buffer.push({
                     position: new THREE.Vector2().copy(updateData.position),
@@ -129,14 +134,17 @@ export class Game {
         });
 
         this.socket.on('mapUpdated', (blockData) => {
+            const x = blockData.x;
+            const y = blockData.y;
             if (blockData.updateType === 'added') {
-                this.world.createNonPlayerBlock(blockData.x, blockData.y);
+                this.world.createBlock(x, y);
             }
             else if (blockData.updateType === 'removed') {
-                this.world.removeBlock(blockData.x, blockData.y);
+                this.world.removeBlock(x, y);
             }
             else if (blockData.updateType === 'damaged') {
-                // do something else
+                this.world.updateBlockHealth(x, y, blockData.health)
+                console.log('Block health updated')
             }
         });
 
@@ -167,8 +175,11 @@ export class Game {
             });
         }
         else if (this.world.blockDamaged) {
-            this.socket.emit('damaged', {
-                // do something ---------------------------------------------------
+            this.socket.emit('blockModified', {
+                updateType: 'damaged',
+                x: this.world.lastBlockModified.x,
+                y: this.world.lastBlockModified.y,
+                health: this.world.damagedBlockHealth
             });
         }
     }
@@ -176,6 +187,7 @@ export class Game {
         this.socket.emit('playerUpdate', {
             position: this.player.position,
             velocity: this.player.velocity,
+            health: this.player.health,
             timestamp: performance.now()
         });
     }
@@ -291,6 +303,7 @@ export class Game {
         this.socket.emit('playerUpdate', {
             position: this.player.position,
             velocity: this.player.velocity,
+            health: this.player.health,
             timestamp: performance.now()
         });
     }

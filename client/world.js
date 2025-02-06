@@ -13,6 +13,7 @@ export class World {
         this.blockDamaged = false;
 
         this.lastBlockModified = {x: 0, y: 0};
+        this.damagedBlockHealth = 100;
 
         for (const [key, blockData] of worldState) {
 
@@ -47,51 +48,38 @@ export class World {
         this.lastBlockModified = { x , y };
 
         return block;
-
-        /* OLD BLOCK CREATION METHOD
-        const ghostBlock = this.blockGhosts.get(`${x},${y}`);
-        const ghostBB = ghostBlock.boundingBox;
-        if (this.isValidSpot(x,y) && !playerBB.intersectsBox(ghostBB)) {
-            const geometry = new THREE.BoxGeometry(1,1,1);
-            const material = new THREE.MeshPhongMaterial({color: 0x8B4513 });
-            const block = new THREE.Mesh(geometry, material);
-
-            block.position.set(x, y, 0);
-            
-            const blockBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
-            blockBB.setFromObject(block);
-            block.boundingBox = blockBB;
-
-            block.castShadow = true;
-            block.receiveShadow = true;
-            this.scene.add(block);
-
-            const key = `${x},${y}`;
-            this.blocks.set(key, block);
-
-            this.blockAdded = true;
-            this.lastBlockModified = {
-                x: block.position.x,
-                y: block.position.y
-            }
-        }
-        */
     }
 
-    damageBlock(x, y, amount) {
+    damageBlock(x, y, damage) {
         const block = this.getBlockAt(x, y);
         if (!block) return false;
 
-        const destroyed = block.damage(amount);
-        this.blockDamaged = true;
+        const destroyed = block.damage(damage);
 
         if (destroyed) {
             this.removeBlock(x, y);
+            this.blockRemoved = true;
+        } else {
+            this.blockDamaged = true;
+            this.damagedBlockHealth = block.health;
         }
 
-        this.blockDamaged = true;
-
         return destroyed;
+    }
+
+    updateBlock(x, y, type) {
+        const block = this.getBlockAt(x, y);
+        if (block) {
+            block.updateBlock(type, damage);
+        }
+    }
+
+    updateBlockHealth(x, y, health) {
+        const block = this.getBlockAt(x, y);
+        if (block) {
+            console.log(`block ${x, y} health updated`)
+            block.updateBlockHealth(health);
+        }
     }
 
     removeBlock(x,y,type) {

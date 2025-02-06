@@ -6,6 +6,7 @@ export class Player {
         this.world = world;
         this.camera = camera;
         this.onGround = false;
+        this.health = 100;
         this.velocity = {x: 0, y: 0};
         this.size = {x: 0.75, y: 1.75};
         this.position = startPosition;

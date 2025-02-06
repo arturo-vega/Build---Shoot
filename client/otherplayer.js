@@ -1,9 +1,11 @@
 import * as THREE from 'three';
 
 export class OtherPlayer {
-    constructor(scene, world, velocity, position) {
+    constructor(scene, world, velocity, position, health) {
         this.scene = scene;
         this.world = world;
+        this.health = health;
+        this.isDead = false;
         this.size = {x: 0.75, y: 1.75};
         this.maxVelocity = 0.3;
         this.minVelocity = -0.3;
@@ -147,6 +149,14 @@ export class OtherPlayer {
         this.player.position.copy(originalPosition);
                 
         return collisionResponse;
+    }
+
+    damage(amount) {
+        this.health = this.health - amount;
+        if (this.health <= 0) {
+            this.isDead = true;
+            // do something
+        }
     }
 
     getCollisionDirection(playerBox, blockBox) {

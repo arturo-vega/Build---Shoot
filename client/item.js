@@ -17,7 +17,8 @@ export class Item {
                 this.removeBlock();
                 break;
             case 'weapon':
-                this.castRay();
+                const damage = 20;
+                this.castRay(damage);
                 break;
             default:
                 console.error('Unknown item type: ', this.type);
@@ -52,7 +53,7 @@ export class Item {
         }
     }
 
-    castRay() {
+    castRay(damage) {
         const intersectPoint = this.getRayPlaneIntersection(
             this.player.camera,
             this.player.mouseRaycaster.ray.direction
@@ -73,7 +74,12 @@ export class Item {
             const firstIntersected = intersects[0];
             console.log('Ray hit: ', firstIntersected.object);
 
-            // --------------- add more
+            const block = this.world.getBlockAt(firstIntersected.object.position.x, firstIntersected.object.position.y);
+            if (block) {
+                this.world.damageBlock(block.x, block.y, damage);
+                console.log(`Block ${block.x}, ${block.y} damaged`);
+            }
+            // stuff for damage her
         }
     }
 
