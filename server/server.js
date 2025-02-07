@@ -59,7 +59,7 @@ io.on('connection', (socket) => {
         });
 
         // Send existing player info to new player
-        players.forEach((player, id) => { ///////// check this
+        players.forEach((player, id) => { 
             if (id !== socket.id) {
                 socket.emit('playerJoined', {
                     id: id,
@@ -90,15 +90,34 @@ io.on('connection', (socket) => {
         }
     });
 
-    // handle block changes 
-    // !!! This will need to change when we change how blocks are handled
+    // Handle PVP damage
+    socket.on('playerHit', (damageInfo) => {
+        // if the damageInfo playerid matches the id in the players map then they
+        // have been hit and send them the hit info. For everyone else update
+        // the new player hp
+        players.forEach((player, id) => {
+            if (id === damageInfo.playerId) {
+                socket.emit('playerDamaged', damageInfo);
+            } else {
+                socket.emit('otherPlayerDamaged', {
+                    playerId: damageInfo.playerId,
+                    damage: damageInfo.damage,
+                    rayDirection: {
+                        x: damageInfo.rayDirection.x,
+                        y: damageInfo.rayDirection.y
+                    }
+                });
+            }
+        });
+    });
+
+    // handle block changes
     socket.on('blockModified', (blockData) => {
 
         const x = blockData.x
         const y = blockData.y
 
         if (blockData.updateType === 'added') {
-            // change this at some point so that we don't have two methods for player and non player blocks
             world.createBlock(x, y);
             socket.broadcast.emit('mapUpdated', {
                 updateType: 'added',

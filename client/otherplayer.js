@@ -10,9 +10,9 @@ export class OtherPlayer {
         this.maxVelocity = 0.3;
         this.minVelocity = -0.3;
         this.terminalVelocity = -1.2
-        this.friction = -0.1;
-        this.jumpSpeed = .5;
-        this.gravity = -0.025;
+        this.friction = 0.2;
+        this.jumpSpeed = .3;
+        this.gravity = -0.01;
         this.speed = 0.01;
 
         //this.id = id
@@ -151,8 +151,10 @@ export class OtherPlayer {
         return collisionResponse;
     }
 
-    damage(amount) {
+    damage(rayDirection, amount) {
         this.health = this.health - amount;
+        this.velocity.x += (rayDirection.x * 0.25);
+        this.velocity.y += (rayDirection.y * 0.25);
         if (this.health <= 0) {
             this.isDead = true;
             // do something

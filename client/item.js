@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 
 export class Item {
-    constructor(type, scene, world, player) {
+    constructor(type, scene, world, player, game) {
         this.type = type;
         this.scene = scene;
         this.world = world;
         this.player = player;
+        this.game = game;
     }
 
     use() {
@@ -70,6 +71,8 @@ export class Item {
 
         const intersects = raycaster.intersectObjects(this.scene.children);
 
+        console.log(`Raydirection: ${rayDirection.x}, ${rayDirection.y}`);
+
         if (intersects.length > 0) {
             const firstIntersected = intersects[0];
             console.log('Ray hit: ', firstIntersected.object);
@@ -79,7 +82,22 @@ export class Item {
                 this.world.damageBlock(block.x, block.y, damage);
                 console.log(`Block ${block.x}, ${block.y} damaged`);
             }
-            // stuff for damage her
+            // rudimentary player damage
+            for (const [playerId, otherPlayer] of this.game.otherPlayers) {
+                const intersectPos = firstIntersected.object.position;
+                const otherPos = otherPlayer.position;
+
+                if (intersectPos.x === otherPos.x && intersectPos.y === otherPos.y) {
+                    console.log(`Hit player ${playerId} dealing ${damage} damage`);
+
+                    otherPlayer.damage(damage,rayDirection);
+                    this.player.didDamage = true;
+                    this.player.playerRayDirection.x = rayDirection.x;
+                    this.player.playerRayDirection.y = rayDirection.y;
+                    this.player.damageDealt = damage;
+                    this.player.playerDamaged = playerId;
+                }
+            }
         }
     }
 

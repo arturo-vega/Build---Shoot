@@ -30,8 +30,6 @@ export class Block {
             }
         };
 
-        console.log(blockTypes[type]);
-
         // set block to wood if the type is undefined
         const properties = blockTypes[type] || blockTypes.wood;
 
@@ -50,12 +48,15 @@ export class Block {
         const mesh = new THREE.Mesh(geometry, material);
         mesh.castShadow = true;
         mesh.receiveShadow = true;
+        mesh.material.opacity = true;
 
         return mesh;
     }
 
     updateBlockHealth(health) {
         this.health = health;
+        const damagePercentage = this.health / this.maxHealth;
+        this.mesh.material.opacity = 0.5 + (damagePercentage * 0.5);
     }
     updateBlockType(type) {
         if (type !== this.type) {
@@ -73,9 +74,6 @@ export class Block {
         if (!this.destructible) return false;
 
         this.health = Math.max(0, this.health - amount);
-
-        const damagePercentage = this.health / this.maxHealth;
-        this.mesh.material.opacity = 0.5 + (damagePercentage * 0.5);
 
         console.log(`Block health: ${this.health}`);
 

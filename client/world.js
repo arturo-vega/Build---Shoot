@@ -77,7 +77,7 @@ export class World {
     updateBlockHealth(x, y, health) {
         const block = this.getBlockAt(x, y);
         if (block) {
-            console.log(`block ${x, y} health updated`)
+            console.log(`block ${x},${y} health: ${health}`);
             block.updateBlockHealth(health);
         }
     }

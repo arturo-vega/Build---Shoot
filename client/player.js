@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { Item } from '/item.js';
 
 export class Player {
-    constructor(scene, world, camera, startPosition) {
+    constructor(scene, world, camera, startPosition, game) {
+        this.game = game;
         this.world = world;
         this.camera = camera;
         this.onGround = false;
@@ -12,23 +13,29 @@ export class Player {
         this.position = startPosition;
         this.previousMousePosition = {x:10, y:10};
         this.currentMousePosition = {x:0, y:0};
+
+        // pvp info
+        this.didDamage = false;
+        this.playerRayDirection = {x: 0, y: 0};
+        this.damageDealt = 0;
+        this.playerDamaged = null;
         
         // make these static
         this.maxVelocity = 0.3;
         this.minVelocity = -0.3;
         this.terminalVelocity = -1.2
-        this.friction = -0.1;
-        this.jumpSpeed = .5;
-        this.gravity = -0.025;
+        this.friction = 0.01;
+        this.jumpSpeed = .3;
+        this.gravity = -0.01;
         this.speed = 0.01;
 
         this.mouseRaycaster = new THREE.Raycaster();
         this.mouse = new THREE.Vector2();
 
         this.items = [
-            new Item('placer', scene, world, this),
-            new Item('remover', scene, world, this),
-            new Item('weapon', scene, world, this)
+            new Item('placer', scene, world, this, this.game),
+            new Item('remover', scene, world, this, this.game),
+            new Item('weapon', scene, world, this, this.game)
         ];
         this.currentItemIndex = 2;
 
@@ -221,34 +228,52 @@ export class Player {
         }
     }
 
+    applyFriction() {
+        if (Math.abs(this.velocity.x) < 0.05) {
+            this.velocity.x = 0;
+        } else {
+            this.velocity.x *= this.friction;
+        }
+    }
+
     handleInput() {
-        if (this.keys['ArrowLeft'] || this.keys['a']) {
-            if (this.velocity.x <= this.minVelocity) {
-                this.velocity.x = this.minVelocity;
+        if (!this.isDead) {
+            if (this.keys['ArrowLeft'] || this.keys['a']) {
+                if (this.velocity.x <= this.minVelocity) {
+                    this.velocity.x = this.minVelocity;
+                } else {
+                    this.velocity.x -= this.speed;
+                    if (this.velocity.x > 0) {
+                        this.velocity.x -= this.speed;
+                    }
+                }
+            } else if (this.keys['ArrowRight'] || this.keys['d']) {
+                if (this.velocity.x >= this.maxVelocity) {
+                    this.velocity.x = this.maxVelocity;
+                } else{
+                    this.velocity.x += this.speed;
+                    if (this.velocity.x < 0) {
+                        this.velocity.x += this.speed;
+                    }
+                }
             } else {
-                this.velocity.x -= this.speed;
+                this.applyFriction();
             }
-        } else if (this.keys['ArrowRight'] || this.keys['d']) {
-            if (this.velocity.x >= this.maxVelocity) {
-                this.velocity.x = this.maxVelocity;
-            } else{
-                this.velocity.x += this.speed;
+            
+            if ((this.keys['ArrowUp'] || this.keys['w']) && this.onGround) {
+                this.velocity.y = this.jumpSpeed;
+                this.onGround = false;
+            }
+
+            if (this.keys['1']) {
+                this.switchItem(0);
+            } else if (this.keys['2']) {
+                this.switchItem(1);
+            } else if (this.keys['3']) {
+                this.switchItem(2);
             }
         } else {
-            this.velocity.x = 0;
-        }
-        
-        if ((this.keys['ArrowUp'] || this.keys['w']) && this.onGround) {
-            this.velocity.y = this.jumpSpeed;
-            this.onGround = false;
-        }
-
-        if (this.keys['1']) {
-            this.switchItem(0);
-        } else if (this.keys['2']) {
-            this.switchItem(1);
-        } else if (this.keys['3']) {
-            this.switchItem(2);
+            this.applyFriction();
         }
     }
 
@@ -293,7 +318,7 @@ export class Player {
             this.world.blockGhost(Math.floor(intersectionPoint.x), Math.floor(intersectionPoint.y), this.playerBB);
             this.ghostBlockOn = true;
         }
-        else if (this.currentItemIndex >= 2) {
+        else if (this.currentItemIndex >= 2 || this.isDead) {
             this.world.removeBlock(this.previousMousePosition.x, this.previousMousePosition.y, "ghost");
             this.ghostBlockOn = false;
         }
@@ -308,10 +333,20 @@ export class Player {
     }
 
     onClick() {
-        this.useItem();
+        if (!this.isDead) {this.useItem();}
     }
     useItem() {
         this.items[this.currentItemIndex].use();
+    }
+
+    damage(rayDirection, amount) {
+        this.health = this.health - amount;
+        this.velocity.x += (rayDirection.x * 0.25);
+        this.velocity.y += (rayDirection.y * 0.3);
+        if (this.health <= 0) {
+            this.isDead = true;
+            // do something
+        }
     }
 
     // used for finding out where to place blocks in the world

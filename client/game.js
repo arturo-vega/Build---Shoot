@@ -43,7 +43,8 @@ export class Game {
                         this.scene,
                         this.world,
                         this.camera,
-                        playerStartPosition
+                        playerStartPosition,
+                        this
                     );
 
                     this.socket.emit('playerJoin', this.player.position, this.player.velocity);
@@ -144,8 +145,26 @@ export class Game {
             }
             else if (blockData.updateType === 'damaged') {
                 this.world.updateBlockHealth(x, y, blockData.health)
-                console.log('Block health updated')
             }
+        });
+
+        this.socket.on('otherPlayerDamaged', (damageInfo) => {
+            const rayDirection = damageInfo.rayDirection;
+            const amount = damageInfo.damage;
+            const playerId = damageInfo.playerId;
+
+            const player = this.otherPlayers.get(playerId);
+            if (player) {
+                player.damage(rayDirection, amount);
+            }
+            console.log(`Player ${playerId} recieved ${amount} damage`);
+        });
+
+        this.socket.on('playerDamaged', (damageInfo) => {
+            const rayDirection = damageInfo.rayDirection;
+            const amount = damageInfo.damage;
+            this.player.damage(rayDirection, amount);
+            console.log(`Received: ${amount} damage from player ${damageInfo.playerId}`);
         });
 
         this.socket.on('playerLeft', (playerId) => {
@@ -166,6 +185,7 @@ export class Game {
                 x: this.world.lastBlockModified.x,
                 y: this.world.lastBlockModified.y
             });
+            this.world.blockAdded = false;
         }
         else if (this.world.blockRemoved) {
             this.socket.emit('blockModified', {
@@ -173,6 +193,7 @@ export class Game {
                 x: this.world.lastBlockModified.x,
                 y: this.world.lastBlockModified.y
             });
+            this.world.blockRemoved = false;
         }
         else if (this.world.blockDamaged) {
             this.socket.emit('blockModified', {
@@ -181,6 +202,7 @@ export class Game {
                 y: this.world.lastBlockModified.y,
                 health: this.world.damagedBlockHealth
             });
+            this.world.blockDamaged = false;
         }
     }
     sendPlayerPosition() {
@@ -190,6 +212,22 @@ export class Game {
             health: this.player.health,
             timestamp: performance.now()
         });
+    }
+
+    sendPVPInfo() {
+        if (this.player.didDamage) {
+            console.log('Sent player damage info');
+            // send all the pvp flags from the player
+            this.socket.emit('playerHit', {
+                playerId: this.player.playerDamaged,
+                damage: this.player.damageDealt,
+                rayDirection: {
+                    x: this.player.playerRayDirection.x,
+                    y: this.player.playerRayDirection.y
+                }
+            });
+        }
+        this.player.didDamage = false;
     }
 
     setupEventListeners() {
@@ -226,9 +264,7 @@ export class Game {
         this.camera.lookAt(this.player.position.x,this.player.position.y,0);
 
         this.sendBlockInformation();
-        this.world.blockAdded = false;
-        this.world.blockRemoved = false;
-        this.world.blockDamaged = false;
+        this.sendPVPInfo();
         
         this.lastUpdateTime = currentTime;
     }
