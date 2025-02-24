@@ -49,7 +49,6 @@ export class Game {
 
                     this.socket.emit('playerJoin', this.player.position, this.player.velocity);
 
-                    console.log("Adding scene");
                     this.scene.add(this.camera);
             
                     // sun light
@@ -148,6 +147,7 @@ export class Game {
             }
         });
 
+        /*
         this.socket.on('otherPlayerDamaged', (damageInfo) => {
             const rayDirection = damageInfo.rayDirection;
             const amount = damageInfo.damage;
@@ -159,12 +159,23 @@ export class Game {
             }
             console.log(`Player ${playerId} recieved ${amount} damage`);
         });
+        */
 
         this.socket.on('playerDamaged', (damageInfo) => {
             const rayDirection = damageInfo.rayDirection;
             const amount = damageInfo.damage;
-            this.player.damage(rayDirection, amount);
-            console.log(`Received: ${amount} damage from player ${damageInfo.playerId}`);
+            const playerId = damageInfo.playerId;
+
+            const player = this.otherPlayers.get(playerId);
+            // If the player ID isn't in the otherPlayers map then just assume that it's the player character
+            // Not a very, change this
+            if (player) {
+                player.damage(rayDirection, amount);
+                console.log(`Player ${playerId} recieved ${amount} damage`);
+            } else {
+                this.player.damage(rayDirection, amount);
+                console.log(`Received: ${amount} damage from player ${damageInfo.playerId}`);
+            }
         });
 
         this.socket.on('playerLeft', (playerId) => {
@@ -309,7 +320,7 @@ export class Game {
             if (buffer[i].timestamp > currentTime) {
                 previousUpdate = buffer[i - 1];
                 nextUpdate = buffer[i];
-                console.log("TRUKE NUKE!!!!!!!!!!!!!!!!!!");
+                console.log("Buffer loop buffer loop buffer loop");
                 
             }
         }

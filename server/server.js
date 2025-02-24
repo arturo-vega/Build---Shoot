@@ -90,25 +90,27 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Handle PVP damage
+    // Handle PVP damage ------------------------------------------------------------
     socket.on('playerHit', (damageInfo) => {
+
+        const player = players.get(damageInfo.playerId)
         // if the damageInfo playerid matches the id in the players map then they
         // have been hit and send them the hit info. For everyone else update
         // the new player hp
-        players.forEach((player, id) => {
-            if (id === damageInfo.playerId) {
-                socket.emit('playerDamaged', damageInfo);
-            } else {
-                socket.emit('otherPlayerDamaged', {
-                    playerId: damageInfo.playerId,
-                    damage: damageInfo.damage,
-                    rayDirection: {
-                        x: damageInfo.rayDirection.x,
-                        y: damageInfo.rayDirection.y
-                    }
-                });
-            }
-        });
+        if (player) {
+            socket.broadcast.emit('playerDamaged', damageInfo);
+            console.log("Sent damage!");
+
+            //console.log("Sent other player damage");
+            //socket.emit('otherPlayerDamaged', {
+            //    playerId: damageInfo.playerId,
+            //    damage: damageInfo.damage,
+            //    rayDirection: {
+            //        x: damageInfo.rayDirection.x,
+            //        y: damageInfo.rayDirection.y
+            //    }
+            //});
+        }
     });
 
     // handle block changes
