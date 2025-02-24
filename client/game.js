@@ -8,8 +8,13 @@ export class Game {
         this.socket = socket;
         this.otherPlayers = new Map();
 
+        this.aspectRatio = 16/9;
+
+        this.windowHeight = window.innerHeight;
+        this.windowWidth = this.windowHeight * this.aspectRatio;
+
         this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight);
+        this.camera = new THREE.PerspectiveCamera(90, this.windowWidth / this.windowHeight);
         const canvas = document.querySelector('canvas.webgl')
 
         try {
@@ -17,7 +22,7 @@ export class Game {
         } catch {
             alert("WebGL failed to initialize. Try restarting your browser or check your browser's compatibility.");
         }
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.setSize(this.windowWidth, this.windowHeight);
 
         return new Promise((resolve, reject) => {
             // Store the resolve and reject functions as instance methods
@@ -243,10 +248,13 @@ export class Game {
 
     setupEventListeners() {
         window.addEventListener('resize', () => {
-            this.camera.aspect = window.innerWidth / window.innerHeight;
+            this.windowHeight = window.innerHeight;
+            this.windowWidth = this.windowHeight * this.aspectRatio;
+
+            this.camera.aspect = this.windowWidth / this.windowHeight;
             this.camera.updateProjectionMatrix();
-            this.renderer.setSize( window.innerWidth, window.innerHeight );
-        });
+            this.renderer.setSize( this.windowWidth, this.windowHeight );
+        }, false);
     }
 
     animate() {

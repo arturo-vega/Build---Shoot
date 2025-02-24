@@ -100,16 +100,6 @@ io.on('connection', (socket) => {
         if (player) {
             socket.broadcast.emit('playerDamaged', damageInfo);
             console.log("Sent damage!");
-
-            //console.log("Sent other player damage");
-            //socket.emit('otherPlayerDamaged', {
-            //    playerId: damageInfo.playerId,
-            //    damage: damageInfo.damage,
-            //    rayDirection: {
-            //        x: damageInfo.rayDirection.x,
-            //        y: damageInfo.rayDirection.y
-            //    }
-            //});
         }
     });
 

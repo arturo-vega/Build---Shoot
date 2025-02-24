@@ -293,8 +293,8 @@ export class Player {
     }
 
     onMouseMove(event) {
-        this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-        this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        this.mouse.x = (event.clientX / this.game.windowWidth) * 2 - 1;
+        this.mouse.y = -(event.clientY / this.game.windowHeight) * 2 + 1;
     }
 
 
