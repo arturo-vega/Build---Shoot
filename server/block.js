@@ -5,12 +5,7 @@ export class Block {
         this.type = type;
         this.x = x;
         this.y = y;
-        this.neighbors = {
-            top: null,
-            right: null,
-            bottom: null,
-            left: null
-        };
+
         const blockTypes = {
             'steel': {
                 health: 100,
@@ -56,7 +51,7 @@ export class Block {
         if (type !== this.type) {
             this.type = type;
             this.health = blockTypes[type].health;
-        } 
+        }
     }
 
     updateBlockHealth(health) {
@@ -80,25 +75,8 @@ export class Block {
         return this.health === 0;
     }
 
-    // run to check what neighbors the block has and is updated
-    /*
-    updateNeighbors() {
-        let {x, y} = this.position;
-
-        this.neighbors.top = this.world.getBlockAt(x, y + 1);
-        this.neighbors.right = this.world.getBlockAt(x + 1, y);
-        this.neighbors.bottom = this.world.getBlockAt(x, y = 1);
-        this.neighbors.left = this.world.getBlockAt(x - 1, y);
-    }
-    */
     destroy() {
         this.mesh.geometry.dispose();
         this.mesh.material.dispose();
-
-        //Object.values(this.neighbors).forEach(neighbor => {
-        //    if (neighbor) {
-        //        neighbor.updateNeighbors();
-        //    }
-        //});
     }
 }

@@ -23,16 +23,12 @@ export class World {
             const block = new Block(x, y, type, health);
             this.blocks.set(key, block);
     
-            // ----------------------------- neighbors
-            //block.updateNeighbors();
-    
             this.lastBlockModified = { x , y };
-    
-            return block;
     }
 
     damageBlock(x, y, amount) {
         const block = this.getBlockAt(x, y);
+
         if (!block) return false;
 
         const destroyed = block.damage(amount);
@@ -45,7 +41,135 @@ export class World {
             this.damagedBlockHealth = block.health;
         }
 
-        return destroyed;
+        return true;
+    }
+
+    // neighbor is a string indicating where the neighbor block is relative to the coordinates of the block
+    updateBlockNeighbor(x, y, neighbor, destroyed) {
+        const block = this.getBlockAt(x, y);
+
+        if (!destroyed) {
+            switch (neighbor) {
+                case 'right':
+                    block.neighbors.right = {x: x+1, y: y};
+                    break;
+
+                case 'left':
+                    block.neighbors.left = {x: x-1, y: y};
+                    break;
+
+                case 'top':
+                    block.neighbors.top = {x: x, y: y+1};
+                    break;
+
+                case 'bottom':
+                    block.neighbors.bottom = {x: x, y: y-1};
+                    break;
+            }
+        } else {
+            switch (neighbor) {
+                case 'right':
+                    block.neighbors.right = null;
+                    break;
+
+                case 'left':
+                    block.neighbors.left = null;
+                    break;
+
+                case 'top':
+                    block.neighbors.top = null;
+                    break;
+
+                case 'bottom':
+                    block.neighbors.bottom = null;
+                    break;
+            }
+        }
+    }
+
+    getNeighborBlocks(x, y) {
+        return [
+            {x: x-1, y: y},
+            {x: x+1, y: y},
+            {x: x, y: y-1},
+            {x: x, y: y+1}
+        ]
+    }
+
+    // takes in coordinates of a block that was destroyed and searches neighbors for disconnected blocks to be removed
+    checkForDisconnectedBlocks(x, y) {
+        let visited = [];
+        let stack = [];
+        let goodBlocks = [];
+        let startingBlocks = [];
+        let badBlocks =[];
+
+        let connected = false;
+
+        badBlocks.push(this.getBlockAt(x, y));
+
+        // get the neighbor blocks of the block that was destroyed
+        let neighborBlocks = this.getNeighborBlocks(x, y);
+
+        // get all the blocks around the block tht was destroyed and push them into the starting blocks array
+        for (let i = 0; i < neighborBlocks.length; i++) {
+            let neighborBlock = this.getBlockAt(neighborBlocks[i].x, neighborBlocks[i].y);
+            if (neighborBlock) {
+                startingBlocks.push(neighborBlock);
+                console.log('Starting block: ', neighborBlock.x, neighborBlock.y);
+            }
+        }
+
+        for (let i = 0; i < startingBlocks.length; i++) {
+            let block = startingBlocks[i];
+            stack.push(block);
+
+            // reset visited for each starting block
+            visited = [];
+
+            while (stack.length != 0) {
+                block = stack.pop();
+
+                // skip if the block is already visited or if it's in the BAD BLOCKS (should only be the original block that got removed tho)
+                if (visited.includes(block) || badBlocks.includes(block)) {
+                    continue;
+                }
+
+                visited.push(block);
+
+                neighborBlocks = this.getNeighborBlocks(block.x, block.y);
+
+                // check each neighbor
+                for (let j = 0; j < neighborBlocks.length; j++) {
+                    let neighborBlock = this.getBlockAt(neighborBlocks[j].x, neighborBlocks[j].y);
+
+                    if (neighborBlock) {
+                        // Check if any blocks are indestructible or already marked as good
+                        if (visited.some(neighborBlock => !block.destructible || goodBlocks.includes(neighborBlock))) {
+                            connected = true;
+                            break;
+                        } else {
+                            stack.push(neighborBlock);
+                        }
+                    }
+                }
+            }
+
+            if (connected) {
+                goodBlocks = [...goodBlocks, ...visited];
+                connected = false;
+            } else {
+                for (let j = 0; j < visited.length; j++) {
+                    let blockToRemove = visited[j];
+                    if (blockToRemove) {
+                        badBlocks.push(blockToRemove);
+                    }
+                }
+            }
+        }
+
+        console.log(badBlocks);
+        return badBlocks;
     }
 
     updateBlock(x, y, type) {

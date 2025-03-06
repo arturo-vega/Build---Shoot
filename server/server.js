@@ -118,12 +118,19 @@ io.on('connection', (socket) => {
             });
         }
         else if (blockData.updateType === 'removed') {
-            world.removeBlock(x, y);
-            socket.broadcast.emit('mapUpdated', {
-                updateType: 'removed',
-                x: x,
-                y: y
-            });
+            // maybe have this function return an array of coordinates to remove
+            const blocksToRemove = world.checkForDisconnectedBlocks(x, y);
+
+            for (let i = 0; i < blocksToRemove.length; i++) {
+                const block = blocksToRemove[i];
+                if (!block) continue;
+                io.emit('mapUpdated', {
+                    updateType: 'removed',
+                    x: block.x,
+                    y: block.y
+                });
+                world.removeBlock(block.x, block.y);
+            }
         }
         else if (blockData.updateType === 'damaged') {
             world.updateBlockHealth(x, y, blockData.health)

@@ -152,20 +152,6 @@ export class Game {
             }
         });
 
-        /*
-        this.socket.on('otherPlayerDamaged', (damageInfo) => {
-            const rayDirection = damageInfo.rayDirection;
-            const amount = damageInfo.damage;
-            const playerId = damageInfo.playerId;
-
-            const player = this.otherPlayers.get(playerId);
-            if (player) {
-                player.damage(rayDirection, amount);
-            }
-            console.log(`Player ${playerId} recieved ${amount} damage`);
-        });
-        */
-
         this.socket.on('playerDamaged', (damageInfo) => {
             const rayDirection = damageInfo.rayDirection;
             const amount = damageInfo.damage;
@@ -173,7 +159,7 @@ export class Game {
 
             const player = this.otherPlayers.get(playerId);
             // If the player ID isn't in the otherPlayers map then just assume that it's the player character
-            // Not a very, change this
+            // Not a very good system, change this
             if (player) {
                 player.damage(rayDirection, amount);
                 console.log(`Player ${playerId} recieved ${amount} damage`);

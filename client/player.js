@@ -341,11 +341,12 @@ export class Player {
 
     damage(rayDirection, amount) {
         this.health = this.health - amount;
-        this.velocity.x += (rayDirection.x * 0.25);
+        this.velocity.x += (rayDirection.x * 5.25);
         this.velocity.y += (rayDirection.y * 0.3);
+        this.onGround = false;
         if (this.health <= 0) {
             this.isDead = true;
-            // do something
+            // do something?
         }
     }
 
