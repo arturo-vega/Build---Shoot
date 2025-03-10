@@ -38,6 +38,11 @@ export class Player {
             new Item('weapon', scene, world, this, this.game)
         ];
         this.currentItemIndex = 2;
+        this.itemNames = [
+            'Block',
+            'Shovel',
+            'Gun'
+        ];
 
         // player cube
         const geometry = new THREE.BoxGeometry(this.size.x, this.size.y, 0.25);

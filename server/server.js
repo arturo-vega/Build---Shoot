@@ -118,12 +118,12 @@ io.on('connection', (socket) => {
             });
         }
         else if (blockData.updateType === 'removed') {
-            // maybe have this function return an array of coordinates to remove
             const blocksToRemove = world.checkForDisconnectedBlocks(x, y);
 
             for (let i = 0; i < blocksToRemove.length; i++) {
                 const block = blocksToRemove[i];
                 if (!block) continue;
+                // using io.emit so that all players, even the player who sent the 'blockModified' emission, receives the updated map
                 io.emit('mapUpdated', {
                     updateType: 'removed',
                     x: block.x,

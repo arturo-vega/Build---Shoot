@@ -104,7 +104,7 @@ export class Item {
     // used for finding out where to place blocks in the world
     getRayPlaneIntersection(camera, rayDirection) {
         // intersection at point z = 0
-        // cameraPostion.z + t * rayDirection.z = 0
+        // cameraPosition.z + t * rayDirection.z = 0
         // solve for t and find intersection point
 
         const t = -camera.position.z / rayDirection.z;

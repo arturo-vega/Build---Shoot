@@ -12,4 +12,76 @@ body, html {
 
 canvas.webgl {
     display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+
+#react-root {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none; /* Let click events pass through to the canvas */
+}
+
+/* HUD Styling */
+.game-hud {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    color: white;
+    font-family: 'Arial', sans-serif;
+}
+
+/* Health Bar Styling */
+.health-bar-container {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    width: 200px;
+}
+
+.health-bar-label {
+    margin-bottom: 5px;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px black;
+}
+
+.health-bar-background {
+    width: 100%;
+    height: 20px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.health-bar-fill {
+    height: 100%;
+    transition: width 0.2s, background-color 0.3s;
+}
+
+/* Weapon Display Styling */
+.weapon-display {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    display: flex;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.weapon-icon {
+    font-size: 24px;
+    margin-right: 10px;
+}
+
+.weapon-name {
+    font-weight: bold;
+    text-shadow: 1px 1px 2px black;
 }
