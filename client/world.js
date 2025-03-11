@@ -41,8 +41,6 @@ export class World {
         this.blocks.set(key, block);
         this.scene.add(block.mesh);
 
-        // block.updateNeighbors();
-
         this.blockAdded = true;
 
         this.lastBlockModified = { x , y };

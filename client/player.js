@@ -68,14 +68,6 @@ export class Player {
         }
     }
 
-    //set playerVelocity(velocity) {
-    //    this.velocity = velocity;
-    //}
-
-    //set playerPosition(position) {
-    //    this.position = position;
-    //}
-
     updateBoundingBox() {
         this.playerBB.setFromObject(this.player);
     }

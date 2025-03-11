@@ -3,7 +3,6 @@ import HealthBar from './components/healthbar.jsx';
 import WeaponDisplay from './components/weapondisplay.jsx';
 
 function App() {
-    console.log("React App rendering");
     const [playerHealth, setPlayerHealth] = useState(100);
     const [currentWeapon, setCurrentWeapon] = useState('Pistol');
 

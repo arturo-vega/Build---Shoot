@@ -5,12 +5,6 @@ export class Block {
         this.type = type;
         this.x = x;
         this.y = y;
-        this.neighbors = {
-            top: null,
-            right: null,
-            bottom: null,
-            left: null
-        };
 
         const blockTypes = {
             'steel': {
@@ -43,20 +37,35 @@ export class Block {
     }
 
     createMesh(color) {
+        const textureLoader = new THREE.TextureLoader();
+
+        console.log("IN here");
+
         const geometry = new THREE.BoxGeometry(1,1,1);
         const material = new THREE.MeshPhongMaterial({ color });
         const mesh = new THREE.Mesh(geometry, material);
         mesh.castShadow = true;
         mesh.receiveShadow = true;
-        mesh.material.opacity = true;
+        mesh.material.transparent = true;
 
+        textureLoader.load(`./textures/${this.type}.jpg`, (texture) => {
+            console.log("Loading texture");
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(1, 1);
+
+            mesh.material.map = texture;
+            mesh.material.needsUpdate = true;
+        });
+        
         return mesh;
     }
 
     updateBlockHealth(health) {
         this.health = health;
         const damagePercentage = this.health / this.maxHealth;
-        this.mesh.material.opacity = 0.5 + (damagePercentage * 0.5);
+        this.mesh.material.opacity  = 0.5 + (damagePercentage * 0.5);
+        console.log("New opacity:   ",this.mesh.material.opacity );
     }
     updateBlockType(type) {
         if (type !== this.type) {
@@ -81,27 +90,8 @@ export class Block {
         return this.health === 0;
     }
 
-    // run to check what neighbors the block has and is updated
-    /*
-    updateNeighbors() {
-        let x = this.x;
-        let y = this.y;
-
-        this.neighbors.top = this.world.getBlockAt(x, y + 1);
-        this.neighbors.right = this.world.getBlockAt(x + 1, y);
-        this.neighbors.bottom = this.world.getBlockAt(x, y = 1);
-        this.neighbors.left = this.world.getBlockAt(x - 1, y);
-    }
-    */
-
     destroy() {
         this.mesh.geometry.dispose();
         this.mesh.material.dispose();
-
-        //Object.values(this.neighbors).forEach(neighbor => {
-        //    if (neighbor) {
-        //        neighbor.updateNeighbors();
-        //    }
-        //});
     }
 }

@@ -35,9 +35,7 @@ export class Item {
         const x = Math.floor(intersectPoint.x);
         const y = Math.floor(intersectPoint.y);
 
-        if (this.world.isValidSpot(x, y)) {
-            this.world.createBlock(x, y, this.player.playerBB);
-        }
+        this.world.createBlock(x, y);
     }
 
     removeBlock() {
