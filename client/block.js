@@ -50,9 +50,9 @@ export class Block {
         this.soundPaths = properties.sounds;
 
         this.sounds = {
-            place: new THREE.PositionalAudio(this.listener),
             damage: new THREE.PositionalAudio(this.listener),
-            destroy: new THREE.PositionalAudio(this.listener)
+            destroy: new THREE.PositionalAudio(this.listener),
+            place: new THREE.PositionalAudio(this.listener)
         };
 
         this.mesh = this.createMesh(properties.color);
@@ -63,9 +63,6 @@ export class Block {
         });
 
         this.loadSounds();
-
-        // play sound when block is created
-        this.playSound('place');
 
         this.updateBoundingBox();
     }
@@ -105,10 +102,18 @@ export class Block {
                 // store the buffer in the corresponding sound object
                 this.sounds[type].setBuffer(buffer);
 
-                this.sounds[type].setRefDistance(5); // Distance at which the volume reduction starts
-                this.sounds[type].setRolloffFactor(2); // How quickly the sound attenuates
-                this.sounds[type].setVolume(0.5); // Default volume
+                // placing block sound doesn't work, play sound is done before buffer is ready
+                // unless it's done here... will need to fix this
+                if (type === 'place') {
+                    this.playSound('place');
+                }
+
+                this.sounds[type].setRefDistance(5); // distance at which the volume reduction starts
+                this.sounds[type].setRolloffFactor(2); // how quickly the sound attenuates
+                this.sounds[type].setVolume(0.5); // default volume
             });
+
+            
         });
     }
 
@@ -127,7 +132,6 @@ export class Block {
         this.health = health;
         const damagePercentage = this.health / this.maxHealth;
         this.mesh.material.opacity  = 0.5 + (damagePercentage * 0.5);
-        console.log("New opacity:   ",this.mesh.material.opacity );
 
         // check previous health of block and if it's higher than current it's been damaged
         if (this.health < previousHealth && this.health > 0) {
@@ -150,8 +154,6 @@ export class Block {
         if (!this.destructible) return false;
 
         this.health = Math.max(0, this.health - amount);
-
-        console.log(`Block health: ${this.health}`);
 
         const damagePercentage = this.health / this.maxHealth;
         this.mesh.material.opacity = 0.5 + (damagePercentage * 0.5);
