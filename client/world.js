@@ -2,7 +2,9 @@ import * as THREE from 'three';
 import { Block } from './block';
 
 export class World {
-    constructor(scene, worldState) {
+    constructor(scene, worldState, listener) {
+        this.listener = listener;
+
         this.scene = scene;
         this.blockGhosts = new Map();
         //this.blocksBB = new Map();
@@ -17,7 +19,7 @@ export class World {
 
         for (const [key, blockData] of worldState) {
 
-            const block = new Block(blockData.x, blockData.y, blockData.type, blockData.health);
+            const block = new Block(blockData.x, blockData.y, blockData.type, blockData.health, this.listener);
 
             this.blocks.set(key,block);
             this.scene.add(block.mesh);
@@ -37,7 +39,7 @@ export class World {
             }
         }
 
-        const block = new Block(x, y, type, health);
+        const block = new Block(x, y, type, health, this.listener);
         this.blocks.set(key, block);
         this.scene.add(block.mesh);
 

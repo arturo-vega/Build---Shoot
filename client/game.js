@@ -14,8 +14,11 @@ export class Game {
         this.windowWidth = this.windowHeight * this.aspectRatio;
 
         this.scene = new THREE.Scene();
+        this.listener = new THREE.AudioListener();
+
         this.camera = new THREE.PerspectiveCamera(90, this.windowWidth / this.windowHeight);
-        const canvas = document.querySelector('canvas.webgl')
+        this.camera.add(this.listener);
+        const canvas = document.querySelector('canvas.webgl');
 
         try {
             this.renderer = new THREE.WebGLRenderer({canvas: canvas})
@@ -37,7 +40,7 @@ export class Game {
                 try {
                     let worldMap = new Map(JSON.parse(worldState));
                     
-                    this.world = new World(this.scene, worldMap);
+                    this.world = new World(this.scene, worldMap, this.listener);
 
                     console.log(`World loaded ${worldMap.size} blocks.`);
                     console.log("About to load player");
@@ -118,7 +121,7 @@ export class Game {
         this.socket.on('playerMoved', (updateData) => {
             const player = this.otherPlayers.get(updateData.id);
             if (player) {
-                // store in postion buffer for interpolation
+                // store in position buffer for interpolation
                 if (!this.positionBuffer.has(updateData.id)) {
                     this.positionBuffer.set(updateData.id, []);
                 }
