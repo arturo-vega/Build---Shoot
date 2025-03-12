@@ -64,12 +64,14 @@ export class Item {
             0
         ).normalize();
 
+        // update the player ray direction
+        this.player.playerRayDirection.x = rayDirection.x;
+        this.player.playerRayDirection.y = rayDirection.y;
+
         const rayStart = new THREE.Vector3(this.player.position.x, this.player.position.y, 0);
         const raycaster = new THREE.Raycaster(rayStart, rayDirection);
 
         const intersects = raycaster.intersectObjects(this.scene.children);
-
-        console.log(`Raydirection: ${rayDirection.x}, ${rayDirection.y}`);
 
         // should change this so that it differentiates between blocks
         if (intersects.length > 0) {
@@ -83,12 +85,10 @@ export class Item {
                 {x: this.player.position.x, y: this.player.position.y}, // player position
                 {x: firstIntersected.object.position.x, y: firstIntersected.object.position.y} // object position
             );
-            console.log('Ray hit: ', firstIntersected.object);
 
             const block = this.world.getBlockAt(firstIntersected.object.position.x, firstIntersected.object.position.y);
             if (block) {
                 this.world.damageBlock(block.x, block.y, damage);
-                console.log(`Block ${block.x}, ${block.y} damaged`);
             }
             // rudimentary player damage
             for (const [playerId, otherPlayer] of this.game.otherPlayers) {
@@ -96,12 +96,9 @@ export class Item {
                 const otherPos = otherPlayer.position;
 
                 if (intersectPos.x === otherPos.x && intersectPos.y === otherPos.y) {
-                    console.log(`Hit player ${playerId} dealing ${damage} damage`);
 
                     otherPlayer.damage(damage,rayDirection);
                     this.player.didDamage = true;
-                    this.player.playerRayDirection.x = rayDirection.x;
-                    this.player.playerRayDirection.y = rayDirection.y;
                     this.player.damageDealt = damage;
                     this.player.playerDamaged = playerId;
                 }

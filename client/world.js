@@ -55,6 +55,7 @@ export class World {
         if (!block) return false;
 
         const destroyed = block.damage(damage);
+        this.lastBlockModified = {x: x, y: y};
 
         if (destroyed) {
             this.removeBlock(x, y);

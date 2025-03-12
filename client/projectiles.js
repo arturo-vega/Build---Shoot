@@ -20,8 +20,10 @@ export class Projectiles {
             beamLength = Math.sqrt(Math.pow((x2 - x1),2) + Math.pow((y2 - y1),2));
         }
 
-        //console.log("Player Position: ", playerPosition);
-        //console.log("Object Position: ", objectPosition);
+        console.log("INSIDE CREATE BEAM FUNCTION");
+        console.log("Ray Direction: ", rayDirection);
+        console.log("Player Position: ", playerPosition);
+        console.log("Object Position: ", objectPosition);
         console.log("Beam length: ", beamLength);
         //radius top, radius bottom, height (length), radial segments (how 'round' it is)
         const geometry = new THREE.CylinderGeometry( 0.1, 0.1, beamLength, 3 );

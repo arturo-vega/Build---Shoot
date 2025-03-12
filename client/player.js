@@ -25,6 +25,7 @@ export class Player {
         this.playerRayDirection = {x: 0, y: 0};
         this.damageDealt = 0;
         this.playerDamaged = null;
+        this.fired = false;
         
         // make these static
         this.maxVelocity = 0.3;
@@ -385,6 +386,7 @@ export class Player {
         this.items[this.currentItemIndex].use();
         if (this.currentItemIndex === 2) {
             this.playSound('shot');
+            this.fired = true;
         }
     }
 

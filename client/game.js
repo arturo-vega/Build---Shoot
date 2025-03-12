@@ -171,11 +171,29 @@ export class Game {
             // Not a very good system, change this
             if (player) {
                 player.damage(rayDirection, amount);
-                console.log(`Player ${playerId} recieved ${amount} damage`);
             } else {
                 this.player.damage(rayDirection, amount);
-                console.log(`Received: ${amount} damage from player ${damageInfo.playerId}`);
             }
+        });
+
+        this.socket.on('otherPlayerFiredDamagedBlock', (shotInfo) => {
+            // change to a vector because it's not a vector object when its sent over
+            const vectorRay = new THREE.Vector3(shotInfo.rayDirection.x, shotInfo.rayDirection.y, 0);
+            this.projectiles.createBeam (
+                vectorRay,
+                shotInfo.playerPosition,
+                shotInfo.blockPosition
+            )
+        });
+
+        this.socket.on('otherPlayerFired', (shotInfo) => {
+            console.log("RECIEVED RAY: ", shotInfo.rayDirection);
+            // change to a vector because it's not a vector object when its sent over
+            const vectorRay = new THREE.Vector3(shotInfo.rayDirection.x, shotInfo.rayDirection.y, 0);
+            this.projectiles.createBeam (
+                vectorRay,
+                shotInfo.playerPosition
+            )
         });
 
         this.socket.on('playerLeft', (playerId) => {
@@ -225,6 +243,9 @@ export class Game {
         });
     }
 
+    // CHANGE THIS SO THAT IF A PLAYER FIRES AND HITS A PLAYER IT DRAWS A LINE TO THEM
+    // ALSO ON THE FINAL SHOT THAT DESTROYS A BLOCK THE BEAM LENGTH IS 40 AND NOT HOWEVER
+    // FAR AWAY THE BLOCK WAS WHEN IT WAS DESTROYED
     sendPVPInfo() {
         if (this.player.didDamage) {
             console.log('Sent player damage info');
@@ -238,8 +259,42 @@ export class Game {
                 }
             });
         }
+
+        if (this.player.fired) {
+            // send information if block was damaged to calculate beam distance
+            if (this.world.blockDamaged) {
+                this.socket.emit('playerFiredDamagedBlock', {
+                    rayDirection: {
+                        x: this.player.playerRayDirection.x,
+                        y: this.player.playerRayDirection.y
+                    },
+                    playerPosition: {
+                        x: this.player.position.x,
+                        y: this.player.position.y
+                    },
+                    blockPosition: {
+                        x: this.world.lastBlockModified.x,
+                        y: this.world.lastBlockModified.y
+                    }
+                });
+            }
+            // send information if a block wasn't damaged when player fired
+            else {
+                this.socket.emit('playerFired', {
+                    rayDirection: {
+                        x: this.player.playerRayDirection.x,
+                        y: this.player.playerRayDirection.y
+                    },
+                    playerPosition: {
+                        x: this.player.position.x,
+                        y: this.player.position.y
+                    }
+            });
+        }
         this.player.didDamage = false;
+        this.player.fired = false;
     }
+}
 
     setupEventListeners() {
         window.addEventListener('resize', () => {
@@ -277,8 +332,9 @@ export class Game {
         this.camera.position.set(this.player.position.x, this.player.position.y, 7);
         this.camera.lookAt(this.player.position.x,this.player.position.y,0);
 
-        this.sendBlockInformation();
+        // block information goes second to calculate beam distance
         this.sendPVPInfo();
+        this.sendBlockInformation();
 
         this.projectiles.update();
         

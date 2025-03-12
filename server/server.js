@@ -103,6 +103,14 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('playerFiredDamagedBlock', (shotInfo) => {
+        socket.broadcast.emit('otherPlayerFiredDamagedBlock', shotInfo);
+    });
+
+    socket.on('playerFired', (shotInfo) => {
+        socket.broadcast.emit('otherPlayerFired', (shotInfo));
+    });
+
     // handle block changes
     socket.on('blockModified', (blockData) => {
 
