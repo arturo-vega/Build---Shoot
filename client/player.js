@@ -2,10 +2,11 @@ import * as THREE from 'three';
 import { Item } from '/item.js';
 
 export class Player {
-    constructor(scene, world, camera, startPosition, game) {
+    constructor(scene, world, camera, startPosition, game, listener) {
         this.game = game;
         this.world = world;
         this.camera = camera;
+        this.listener = listener;
         this.onGround = false;
         this.health = 100;
         this.velocity = {x: 0, y: 0};
@@ -13,6 +14,11 @@ export class Player {
         this.position = startPosition;
         this.previousMousePosition = {x:10, y:10};
         this.currentMousePosition = {x:0, y:0};
+
+        // will use this for items
+        this.wandCharge = 100;
+        this.shovelCharge = 50;
+        this.blocksOwned = 50;
 
         // pvp info
         this.didDamage = false;
@@ -38,11 +44,17 @@ export class Player {
             new Item('weapon', scene, world, this, this.game)
         ];
         this.currentItemIndex = 2;
+
+        // used for HUD
         this.itemNames = [
             'Block',
             'Shovel',
             'Gun'
         ];
+
+        // sounds for using weapons, player sounds, etc.
+        const soundPaths = {shot: './sounds/shot.ogg'};
+        this.sounds = {shot: new THREE.PositionalAudio(this.listener)};
 
         // player cube
         const geometry = new THREE.BoxGeometry(this.size.x, this.size.y, 0.25);
@@ -54,11 +66,48 @@ export class Player {
         this.playerBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
         this.updateBoundingBox();
 
+        Object.values(this.sounds).forEach(sound => {
+            this.player.add(sound);
+        });
+
+        this.loadSounds(soundPaths);
+
         this.ghostBlockOn = true;
 
         scene.add(this.player);
         this.setupControls();
 
+    }
+
+    loadSounds(soundPaths) {
+        if (!this.listener) {
+            console.warn('AudioListener not provided to Player');
+            return;
+        }
+
+        const audioLoader = new THREE.AudioLoader();
+
+        for (const type in soundPaths) {
+            audioLoader.load(soundPaths[type], (buffer) => {
+                this.sounds[type].setBuffer(buffer);
+
+                this.sounds[type].setRefDistance(5);
+                this.sounds[type].setRolloffFactor(2);
+                this.sounds[type].setVolume(0.5);
+            });
+        }
+    }
+
+    playSound(type) {
+        if (this.sounds[type] && this.sounds[type].buffer) {
+            if (this.sounds[type].isPlaying) {
+                this.sounds[type].stop();
+            }
+            this.sounds[type].play();
+        }
+        else {
+            console.warn("No sound type: ", this.sounds[type], "Or buffer: ", this.sounds[type].buffer);
+        }
     }
 
     get positionVelocity() {
@@ -334,6 +383,9 @@ export class Player {
     }
     useItem() {
         this.items[this.currentItemIndex].use();
+        if (this.currentItemIndex === 2) {
+            this.playSound('shot');
+        }
     }
 
     damage(rayDirection, amount) {

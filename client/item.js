@@ -71,8 +71,18 @@ export class Item {
 
         console.log(`Raydirection: ${rayDirection.x}, ${rayDirection.y}`);
 
+        // should change this so that it differentiates between blocks
         if (intersects.length > 0) {
             const firstIntersected = intersects[0];
+
+            // creates the beam from the gun -------------------------
+            // this is for when the beam needs to be truncated because it intersected with an object
+            // sends player and coordinates of the object
+            this.game.projectiles.createBeam(
+                rayDirection,
+                {x: this.player.position.x, y: this.player.position.y}, // player position
+                {x: firstIntersected.object.position.x, y: firstIntersected.object.position.y} // object position
+            );
             console.log('Ray hit: ', firstIntersected.object);
 
             const block = this.world.getBlockAt(firstIntersected.object.position.x, firstIntersected.object.position.y);
@@ -96,6 +106,10 @@ export class Item {
                     this.player.playerDamaged = playerId;
                 }
             }
+        } else {
+             // creates the beam from the gun -------------------------
+            // this is for when the beam does not intersect so extends its full length
+            this.game.projectiles.createBeam(rayDirection, {x: this.player.position.x, y: this.player.position.y});
         }
     }
 

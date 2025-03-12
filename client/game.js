@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OtherPlayer } from './otherplayer.js';
 import { Player } from './player.js';
+import { Projectiles } from './projectiles.js';
 import { World } from './world.js';
 
 export class Game {
@@ -47,13 +48,18 @@ export class Game {
                     
                     // Create player after world is loaded
                     const playerStartPosition = new THREE.Vector2(10,10);
+
                     this.player = new Player(
                         this.scene,
                         this.world,
                         this.camera,
                         playerStartPosition,
-                        this
+                        this,
+                        this.listener
                     );
+
+                    // creates a class to handle all projectiles in the world
+                    this.projectiles = new Projectiles(this.scene);
 
                     this.socket.emit('playerJoin', this.player.position, this.player.velocity);
 
@@ -273,6 +279,8 @@ export class Game {
 
         this.sendBlockInformation();
         this.sendPVPInfo();
+
+        this.projectiles.update();
         
         this.lastUpdateTime = currentTime;
     }
@@ -300,7 +308,6 @@ export class Game {
 
     interpolatePlayerPosition(player, buffer, deltaTime) {
         let currentTime = performance.now();
-
         // the position buffer contains previous movements of other players along with a new movements
         // not yet rendered. We need to find the two movement positions we have the player currently
         // rendered
