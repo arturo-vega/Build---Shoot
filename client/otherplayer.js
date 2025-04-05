@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 
 export class OtherPlayer {
-    constructor(scene, world, velocity, position, health) {
+    constructor(scene, world, velocity, position, health, listener) {
         this.scene = scene;
         this.world = world;
         this.health = health;
+        this.listener = listener;
         this.isDead = false;
         this.size = {x: 0.75, y: 1.75};
         this.maxVelocity = 0.3;
@@ -25,11 +26,52 @@ export class OtherPlayer {
         this.player = new THREE.Mesh(geometry, material);
         this.player.position.set(this.position.x,this.position.y,0);
 
+        // sounds for using weapons, player sounds, etc.
+        const soundPaths = {shot: './sounds/shot.ogg'};
+        this.sounds = {shot: new THREE.PositionalAudio(this.listener)};
+
+        Object.values(this.sounds).forEach(sound => {
+            this.player.add(sound);
+        });
+
+        this.loadSounds(soundPaths);
+
         // player bounding box
         this.playerBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
         this.updateBoundingBox();
         
         scene.add(this.player);
+    }
+
+    loadSounds(soundPaths) {
+        if (!this.listener) {
+            console.warn('AudioListener not provided to Player');
+            return;
+        }
+
+        const audioLoader = new THREE.AudioLoader();
+
+        for (const type in soundPaths) {
+            audioLoader.load(soundPaths[type], (buffer) => {
+                this.sounds[type].setBuffer(buffer);
+
+                this.sounds[type].setRefDistance(5);
+                this.sounds[type].setRolloffFactor(2);
+                this.sounds[type].setVolume(0.5);
+            });
+        }
+    }
+
+    playSound(type) {
+        if (this.sounds[type] && this.sounds[type].buffer) {
+            if (this.sounds[type].isPlaying) {
+                this.sounds[type].stop();
+            }
+            this.sounds[type].play();
+        }
+        else {
+            console.warn("No sound type: ", this.sounds[type], "Or buffer: ", this.sounds[type].buffer);
+        }
     }
 
     get playerPositionVelocity() {

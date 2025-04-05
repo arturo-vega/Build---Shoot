@@ -99,16 +99,17 @@ io.on('connection', (socket) => {
         // the new player hp
         if (player) {
             socket.broadcast.emit('playerDamaged', damageInfo);
-            console.log("Sent damage!");
         }
     });
 
+
+    // these two sockets used for creating projectile graphics and sound for other players
     socket.on('playerFiredDamagedBlock', (shotInfo) => {
-        socket.broadcast.emit('otherPlayerFiredDamagedBlock', shotInfo);
+        socket.broadcast.emit('otherPlayerFiredDamagedBlock', shotInfo, socket.id);
     });
 
     socket.on('playerFired', (shotInfo) => {
-        socket.broadcast.emit('otherPlayerFired', (shotInfo));
+        socket.broadcast.emit('otherPlayerFired', shotInfo, socket.id);
     });
 
     // handle block changes

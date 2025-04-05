@@ -117,7 +117,9 @@ export class Game {
                     this.scene,
                     this.world,
                     new THREE.Vector2().copy(playerData.velocity),
-                    new THREE.Vector2().copy(playerData.position)
+                    new THREE.Vector2().copy(playerData.position),
+                    100,
+                    this.listener
                 );
                 this.otherPlayers.set(playerData.id, newPlayer);
             }
@@ -176,9 +178,12 @@ export class Game {
             }
         });
 
-        this.socket.on('otherPlayerFiredDamagedBlock', (shotInfo) => {
+        this.socket.on('otherPlayerFiredDamagedBlock', (shotInfo, playerid) => {
             // change to a vector because it's not a vector object when its sent over
             const vectorRay = new THREE.Vector3(shotInfo.rayDirection.x, shotInfo.rayDirection.y, 0);
+            const otherPlayer = this.otherPlayers.get(playerid);
+            otherPlayer.playSound('shot');
+
             this.projectiles.createBeam (
                 vectorRay,
                 shotInfo.playerPosition,
@@ -186,10 +191,11 @@ export class Game {
             )
         });
 
-        this.socket.on('otherPlayerFired', (shotInfo) => {
-            console.log("RECIEVED RAY: ", shotInfo.rayDirection);
+        this.socket.on('otherPlayerFired', (shotInfo, playerid) => {
             // change to a vector because it's not a vector object when its sent over
             const vectorRay = new THREE.Vector3(shotInfo.rayDirection.x, shotInfo.rayDirection.y, 0);
+            const otherPlayer = this.otherPlayers.get(playerid);
+            otherPlayer.playSound('shot');
             this.projectiles.createBeam (
                 vectorRay,
                 shotInfo.playerPosition
@@ -380,7 +386,6 @@ export class Game {
             if (buffer[i].timestamp > currentTime) {
                 previousUpdate = buffer[i - 1];
                 nextUpdate = buffer[i];
-                console.log("Buffer loop buffer loop buffer loop");
                 
             }
         }

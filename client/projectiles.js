@@ -15,16 +15,8 @@ export class Projectiles {
             let x2 = objectPosition.x;
             let y2 = objectPosition.y;
 
-            console.log(x1, y1, x2, y2);
-
             beamLength = Math.sqrt(Math.pow((x2 - x1),2) + Math.pow((y2 - y1),2));
         }
-
-        console.log("INSIDE CREATE BEAM FUNCTION");
-        console.log("Ray Direction: ", rayDirection);
-        console.log("Player Position: ", playerPosition);
-        console.log("Object Position: ", objectPosition);
-        console.log("Beam length: ", beamLength);
         //radius top, radius bottom, height (length), radial segments (how 'round' it is)
         const geometry = new THREE.CylinderGeometry( 0.1, 0.1, beamLength, 3 );
         const material = new THREE.MeshBasicMaterial( {color: 0xffff00} );

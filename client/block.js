@@ -128,15 +128,12 @@ export class Block {
     }
 
     updateBlockHealth(health) {
-        const previousHealth = health;
         this.health = health;
         const damagePercentage = this.health / this.maxHealth;
         this.mesh.material.opacity  = 0.5 + (damagePercentage * 0.5);
 
-        // check previous health of block and if it's higher than current it's been damaged
-        if (this.health < previousHealth && this.health > 0) {
-            this.playSound('damage');
-        }
+        this.playSound('damage');
+
     }
     updateBlockType(type) {
         if (type !== this.type) {
@@ -151,7 +148,10 @@ export class Block {
     }
 
     damage(amount) {
-        if (!this.destructible) return false;
+        if (!this.destructible) {
+            this.playSound('damage');
+            return false;
+        }
 
         this.health = Math.max(0, this.health - amount);
 
