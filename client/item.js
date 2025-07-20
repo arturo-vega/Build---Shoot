@@ -35,7 +35,7 @@ export class Item {
         const x = Math.floor(intersectPoint.x);
         const y = Math.floor(intersectPoint.y);
 
-        this.world.createBlock(x, y);
+        this.world.createBlock(x, y, this.player.playerBB);
     }
 
     removeBlock() {
@@ -47,7 +47,9 @@ export class Item {
         const x = Math.floor(intersectPoint.x);
         const y = Math.floor(intersectPoint.y);
 
-        if (!this.world.isValidSpot(x,y)) {
+        const block = this.world.getBlockAt(x, y);
+
+        if (block && block.type != 'steel') {
             this.world.removeBlock(x, y);
         }
     }
@@ -82,8 +84,8 @@ export class Item {
             // sends player and coordinates of the object
             this.game.projectiles.createBeam(
                 rayDirection,
-                {x: this.player.position.x, y: this.player.position.y}, // player position
-                {x: firstIntersected.object.position.x, y: firstIntersected.object.position.y} // object position
+                { x: this.player.position.x, y: this.player.position.y }, // player position
+                { x: firstIntersected.object.position.x, y: firstIntersected.object.position.y } // object position
             );
 
             const block = this.world.getBlockAt(firstIntersected.object.position.x, firstIntersected.object.position.y);
@@ -97,16 +99,16 @@ export class Item {
 
                 if (intersectPos.x === otherPos.x && intersectPos.y === otherPos.y) {
 
-                    otherPlayer.damage(damage,rayDirection);
+                    otherPlayer.damage(damage, rayDirection);
                     this.player.didDamage = true;
                     this.player.damageDealt = damage;
                     this.player.playerDamaged = playerId;
                 }
             }
         } else {
-             // creates the beam from the gun -------------------------
+            // creates the beam from the gun -------------------------
             // this is for when the beam does not intersect so extends its full length
-            this.game.projectiles.createBeam(rayDirection, {x: this.player.position.x, y: this.player.position.y});
+            this.game.projectiles.createBeam(rayDirection, { x: this.player.position.x, y: this.player.position.y });
         }
     }
 
@@ -118,12 +120,12 @@ export class Item {
 
         const t = -camera.position.z / rayDirection.z;
 
-        const intersectionPoint = new THREE.Vector3 (
+        const intersectionPoint = new THREE.Vector3(
             camera.position.x + t * rayDirection.x,
             camera.position.y + t * rayDirection.y,
             0 // z is always 0
         );
 
         return intersectionPoint;
-        }
+    }
 }

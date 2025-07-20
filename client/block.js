@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 export class Block {
-    constructor(x, y, type, health = 100, listener) {
+    constructor(x, y, type, health, listener) {
         this.listener = listener;
         this.type = type;
         this.x = x;
@@ -13,27 +13,27 @@ export class Block {
                 health: 100,
                 destructible: false,
                 color: 0x808080,
-                sounds : {
+                sounds: {
                     place: './sounds/wood_place.ogg',
                     damage: './sounds/wood_damage.ogg',
                     destroy: './sounds/wood_destroy.ogg'
                 }
             },
             'concrete': {
-                health: 100,
+                health: 300,
                 destructible: true,
                 color: 0x8b8b8b,
-                sounds : {
+                sounds: {
                     place: './sounds/wood_place.ogg',
                     damage: './sounds/wood_damage.ogg',
                     destroy: './sounds/wood_destroy.ogg'
                 }
             },
             'wood': {
-                health: 50,
+                health: 200,
                 destructible: true,
                 color: 0x8b4513,
-                sounds : {
+                sounds: {
                     place: './sounds/wood_place.ogg',
                     damage: './sounds/wood_damage.ogg',
                     destroy: './sounds/wood_destroy.ogg'
@@ -70,7 +70,7 @@ export class Block {
     createMesh(color) {
         const textureLoader = new THREE.TextureLoader();
 
-        const geometry = new THREE.BoxGeometry(1,1,1);
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
         const material = new THREE.MeshPhongMaterial({ color });
         const mesh = new THREE.Mesh(geometry, material);
         mesh.castShadow = true;
@@ -85,7 +85,7 @@ export class Block {
             mesh.material.map = texture;
             mesh.material.needsUpdate = true;
         });
-        
+
         return mesh;
     }
 
@@ -113,7 +113,7 @@ export class Block {
                 this.sounds[type].setVolume(0.5); // default volume
             });
 
-            
+
         });
     }
 
@@ -130,7 +130,7 @@ export class Block {
     updateBlockHealth(health) {
         this.health = health;
         const damagePercentage = this.health / this.maxHealth;
-        this.mesh.material.opacity  = 0.5 + (damagePercentage * 0.5);
+        this.mesh.material.opacity = 0.5 + (damagePercentage * 0.5);
 
         this.playSound('damage');
 
@@ -169,7 +169,7 @@ export class Block {
 
     destroy() {
         this.playSound('destroy');
-        
+
         // small delay to allow sound to play before disposing resources
         setTimeout(() => {
             // clean up audio resources
@@ -178,7 +178,7 @@ export class Block {
                     sound.disconnect();
                 }
             });
-            
+
             this.mesh.geometry.dispose();
             this.mesh.material.dispose();
         }, 250); // 200ms delay to let the sound play

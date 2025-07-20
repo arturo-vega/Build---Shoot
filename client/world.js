@@ -14,23 +14,25 @@ export class World {
         this.blockRemoved = false;
         this.blockDamaged = false;
 
-        this.lastBlockModified = {x: 0, y: 0};
+        this.lastBlockModified = { x: 0, y: 0 };
         this.damagedBlockHealth = 100;
 
         for (const [key, blockData] of worldState) {
 
             const block = new Block(blockData.x, blockData.y, blockData.type, blockData.health, this.listener);
 
-            this.blocks.set(key,block);
+            this.blocks.set(key, block);
             this.scene.add(block.mesh);
         };
     }
 
 
-    createBlock(x, y, type = 'wood', health, playerBB = null) {
+    createBlock(x, y, playerBB) {
         const key = `${x},${y}`;
+        const type = 'wood';
+        const health = 200;
 
-        if (!this.isValidSpot(x,y)) return null;
+        if (!this.isValidSpot(x, y)) return null;
 
         if (playerBB) {
             const ghostBlock = this.blockGhosts.get(key);
@@ -45,7 +47,7 @@ export class World {
 
         this.blockAdded = true;
 
-        this.lastBlockModified = { x , y };
+        this.lastBlockModified = { x, y };
 
         return block;
     }
@@ -55,7 +57,7 @@ export class World {
         if (!block) return false;
 
         const destroyed = block.damage(damage);
-        this.lastBlockModified = {x: x, y: y};
+        this.lastBlockModified = { x: x, y: y };
 
         if (destroyed) {
             this.removeBlock(x, y);
@@ -83,7 +85,7 @@ export class World {
         }
     }
 
-    removeBlock(x,y,type) {
+    removeBlock(x, y, type) {
         const key = `${x},${y}`;
         if (type === 'ghost') {
             let block = this.blockGhosts.get(key);
@@ -93,7 +95,7 @@ export class World {
                 this.scene.remove(block);
                 this.blockGhosts.delete(key);
             }
-        // remove block
+            // remove block
         } else {
             let block = this.blocks.get(key);
             if (block) {
@@ -129,10 +131,10 @@ export class World {
         return blocks;
     }
 
-    blockGhost(x, y, playerBB) {
+    blockGhost(x, y, playerBB, currentItem) {
         // if valid make a green transparent cube otherwise red
         const key = `${x},${y}`;
-        const geometry = new THREE.BoxGeometry(1,1,1);
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
         const blockGhost = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({
             opacity: 0.7,
             transparent: true
@@ -146,21 +148,50 @@ export class World {
 
         const isSpotEmpty = this.isValidSpot(x, y);
         const doesNotIntersectPlayer = !playerBB.intersectsBox(blockBB);
+        const block = this.getBlockAt(x, y);
 
-        blockGhost.material.color.setHex(
-            isSpotEmpty && doesNotIntersectPlayer ? 0x98fb98 : 0xdc143c //green if true red if false
-        );
+        if (currentItem == 'Placer') {
+            blockGhost.material.color.setHex(
+                isSpotEmpty && doesNotIntersectPlayer ? 0x98fb98 : 0xdc143c //green if true red if false
+            );
+        }
+        else if (currentItem == 'Remover') {
+            blockGhost.material.color.setHex(
+                block && block.type != 'steel' ? 0x98fb98 : 0xdc143c //green if true red if false
+            );
+        }
 
         this.scene.add(blockGhost);
         this.blockGhosts.set(key, blockGhost);
     }
 
-    // checks to see if a spot in the map has a block there or not
+    // checks to see if a spot in the map has a block there or not or other blocks connected to spot
     isValidSpot(x, y) {
         const key = `${x},${y}`
         const block = this.blocks.get(key);
-        if (block) return false;
+        if (block || !this.adjacentBlocks(x, y)) return false;
         return true;
+    }
+
+    adjacentBlocks(x, y) {
+        let key = `${x - 1},${y}`
+        const spot1 = this.blocks.get(key);
+
+        key = `${x + 1},${y}`
+        const spot2 = this.blocks.get(key);
+
+        key = `${x},${y - 1}`
+        const spot3 = this.blocks.get(key);
+
+        key = `${x},${y + 1}`
+        const spot4 = this.blocks.get(key);
+
+        if (spot1 || spot2 || spot3 || spot4) {
+            return true;
+        }
+        else {
+            return false;
+        }
     }
 
     update() {

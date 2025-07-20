@@ -9,7 +9,12 @@ export class Game {
         this.socket = socket;
         this.otherPlayers = new Map();
 
-        this.aspectRatio = 16/9;
+        // using this to calculate FPS
+        this.frameCount = 0;
+        this.FPS = 0;
+        this.timeElapsed = 0;
+
+        this.aspectRatio = 16 / 9;
 
         this.windowHeight = window.innerHeight;
         this.windowWidth = this.windowHeight * this.aspectRatio;
@@ -22,7 +27,7 @@ export class Game {
         const canvas = document.querySelector('canvas.webgl');
 
         try {
-            this.renderer = new THREE.WebGLRenderer({canvas: canvas})
+            this.renderer = new THREE.WebGLRenderer({ canvas: canvas })
         } catch {
             alert("WebGL failed to initialize. Try restarting your browser or check your browser's compatibility.");
         }
@@ -32,22 +37,22 @@ export class Game {
             // Store the resolve and reject functions as instance methods
             this.resolveWorldLoad = resolve;
             this.rejectWorldLoad = reject;
-    
+
             // Track world loading state
             this.worldLoaded = false;
-    
+
             // Listen for initial world state
             this.socket.on('initialWorldState', (worldState) => {
                 try {
                     let worldMap = new Map(JSON.parse(worldState));
-                    
+
                     this.world = new World(this.scene, worldMap, this.listener);
 
                     console.log(`World loaded ${worldMap.size} blocks.`);
                     console.log("About to load player");
-                    
+
                     // Create player after world is loaded
-                    const playerStartPosition = new THREE.Vector2(10,10);
+                    const playerStartPosition = new THREE.Vector2(10, 10);
 
                     this.player = new Player(
                         this.scene,
@@ -64,33 +69,33 @@ export class Game {
                     this.socket.emit('playerJoin', this.player.position, this.player.velocity);
 
                     this.scene.add(this.camera);
-            
+
                     // sun light
-                    const directionalLight = new THREE.DirectionalLight( 0xffffff, 1.2 );
-                    directionalLight.position.set(-1,1,1);
-                    this.scene.add( directionalLight );
-            
-                    const light = new THREE.AmbientLight( 0x4A6A8C ); // soft white light
-                    this.scene.add( light );
+                    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+                    directionalLight.position.set(-1, 1, 1);
+                    this.scene.add(directionalLight);
+
+                    const light = new THREE.AmbientLight(0x4A6A8C); // soft white light
+                    this.scene.add(light);
 
                     this.loadSkyBox();
-            
+
                     // time stamp for interpolation
                     this.lastUpdateTime = performance.now();
-            
+
                     this.updateRate = 15; // milliseconds
                     this.lastUpdateSent = 0;
-            
+
                     // buffer for interpolation
                     this.positionBuffer = new Map();
-            
+
                     this.setupSocketListeners();
                     this.setupEventListeners();
                     this.animate();
-    
+
                     // Mark world as loaded
                     this.worldLoaded = true;
-    
+
                     // Resolve the promise with the game instance
                     this.resolveWorldLoad(this);
                 } catch (error) {
@@ -98,7 +103,7 @@ export class Game {
                     this.rejectWorldLoad(error);
                 }
             });
-    
+
             // Set up timeout for world loading
             setTimeout(() => {
                 if (!this.worldLoaded) {
@@ -106,7 +111,7 @@ export class Game {
                 }
             }, 5000);
         });
-        
+
     }
 
     setupSocketListeners() {
@@ -145,7 +150,7 @@ export class Game {
                 });
                 // keeping only last half second of buffer data
                 this.positionBuffer.set(updateData.id, buffer.filter(entry => entry.timestamp > performance.now() - 500));
-                
+
             }
         });
 
@@ -184,7 +189,7 @@ export class Game {
             const otherPlayer = this.otherPlayers.get(playerid);
             otherPlayer.playSound('shot');
 
-            this.projectiles.createBeam (
+            this.projectiles.createBeam(
                 vectorRay,
                 shotInfo.playerPosition,
                 shotInfo.blockPosition
@@ -196,7 +201,7 @@ export class Game {
             const vectorRay = new THREE.Vector3(shotInfo.rayDirection.x, shotInfo.rayDirection.y, 0);
             const otherPlayer = this.otherPlayers.get(playerid);
             otherPlayer.playSound('shot');
-            this.projectiles.createBeam (
+            this.projectiles.createBeam(
                 vectorRay,
                 shotInfo.playerPosition
             )
@@ -295,12 +300,12 @@ export class Game {
                         x: this.player.position.x,
                         y: this.player.position.y
                     }
-            });
+                });
+            }
+            this.player.didDamage = false;
+            this.player.fired = false;
         }
-        this.player.didDamage = false;
-        this.player.fired = false;
     }
-}
 
     setupEventListeners() {
         window.addEventListener('resize', () => {
@@ -309,7 +314,7 @@ export class Game {
 
             this.camera.aspect = this.windowWidth / this.windowHeight;
             this.camera.updateProjectionMatrix();
-            this.renderer.setSize( this.windowWidth, this.windowHeight );
+            this.renderer.setSize(this.windowWidth, this.windowHeight);
         }, false);
     }
 
@@ -324,7 +329,21 @@ export class Game {
         const currentTime = performance.now();
         const deltaTime = (currentTime - this.lastUpdateTime) / 500;
 
-        this.player.update();
+        // calculate FPS
+        this.frameCount++;
+        this.timeElapsed += (currentTime - this.lastUpdateTime);
+        if (this.timeElapsed / 1000 >= 1) {
+            this.FPS = this.frameCount;
+            this.timeElapsed = 0;
+            this.frameCount = 0;
+        }
+
+
+        if (deltaTime > 0.05) {
+            console.log('Unusual deltaTime:', deltaTime);
+        }
+
+        this.player.update(deltaTime);
         this.world.update();
 
         // sends updates at constant rate rather than every frame at the speed of update rate
@@ -336,16 +355,17 @@ export class Game {
         this.updateOtherPlayers(deltaTime);
         // update camera to follow player
         this.camera.position.set(this.player.position.x, this.player.position.y, 7);
-        this.camera.lookAt(this.player.position.x,this.player.position.y,0);
+        this.camera.lookAt(this.player.position.x, this.player.position.y, 0);
 
         // block information goes second to calculate beam distance
         this.sendPVPInfo();
         this.sendBlockInformation();
 
         this.projectiles.update();
-        
+
         this.lastUpdateTime = currentTime;
     }
+
     render() {
         this.renderer.render(this.scene, this.camera);
     }
@@ -359,10 +379,10 @@ export class Game {
             }
 
             // apply prediction based on velocity
-            player.position.add( player.velocity.clone().multiplyScalar(deltaTime) );
+            player.position.add(player.velocity.clone().multiplyScalar(deltaTime));
             player.player.position.copy(player.position);
 
-                        
+
             // update collisions
             player.update();
         }
@@ -386,7 +406,7 @@ export class Game {
             if (buffer[i].timestamp > currentTime) {
                 previousUpdate = buffer[i - 1];
                 nextUpdate = buffer[i];
-                
+
             }
         }
 
@@ -425,18 +445,18 @@ export class Game {
         const loader = new THREE.CubeTextureLoader();
         loader.setPath('/skybox/');
 
-        const textureCube = loader.load ( [
-// load order: right, left, top, bottom, front, back
+        const textureCube = loader.load([
+            // load order: right, left, top, bottom, front, back
             'skyboxRT.png', 'skyboxLF.png',
             'skyboxUP.png', 'skyboxDN.png',
             'skyboxFT.png', 'skyboxBK.png'
-        ] );
+        ]);
 
 
         this.scene.background = textureCube;
 
         // environment map not used but could be used for reflecting materials off the skybox later
-        const material = new THREE.MeshBasicMaterial( {
+        const material = new THREE.MeshBasicMaterial({
             color: 0xffffff,
             envMap: textureCube
         });

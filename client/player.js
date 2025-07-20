@@ -8,12 +8,13 @@ export class Player {
         this.camera = camera;
         this.listener = listener;
         this.onGround = false;
+        this.jumpPressed = false;
         this.health = 100;
-        this.velocity = {x: 0, y: 0};
-        this.size = {x: 0.75, y: 1.75};
+        this.velocity = { x: 0, y: 0 };
+        this.size = { x: 0.75, y: 1.75 };
         this.position = startPosition;
-        this.previousMousePosition = {x:10, y:10};
-        this.currentMousePosition = {x:0, y:0};
+        this.previousMousePosition = { x: 10, y: 10 };
+        this.currentMousePosition = { x: 0, y: 0 };
 
         // will use this for items
         this.wandCharge = 100;
@@ -22,19 +23,19 @@ export class Player {
 
         // pvp info
         this.didDamage = false;
-        this.playerRayDirection = {x: 0, y: 0};
+        this.playerRayDirection = { x: 0, y: 0 };
         this.damageDealt = 0;
         this.playerDamaged = null;
         this.fired = false;
-        
+
         // make these static
-        this.maxVelocity = 0.3;
-        this.minVelocity = -0.3;
-        this.terminalVelocity = -1.2
-        this.friction = 0.01;
-        this.jumpSpeed = .3;
-        this.gravity = -0.01;
-        this.speed = 0.01;
+        this.maxVelocity = 6;
+        this.minVelocity = -6;
+        this.terminalVelocity = -10
+        this.friction = 0.1;
+        this.jumpSpeed = 30;
+        this.gravity = -0.5;
+        this.speed = 60;
 
         this.mouseRaycaster = new THREE.Raycaster();
         this.mouse = new THREE.Vector2();
@@ -48,20 +49,20 @@ export class Player {
 
         // used for HUD
         this.itemNames = [
-            'Block',
-            'Shovel',
-            'Gun'
+            'Placer',
+            'Remover',
+            'Weapon'
         ];
 
         // sounds for using weapons, player sounds, etc.
-        const soundPaths = {shot: './sounds/shot.ogg'};
-        this.sounds = {shot: new THREE.PositionalAudio(this.listener)};
+        const soundPaths = { shot: './sounds/shot.ogg' };
+        this.sounds = { shot: new THREE.PositionalAudio(this.listener) };
 
         // player cube
         const geometry = new THREE.BoxGeometry(this.size.x, this.size.y, 0.25);
         const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
         this.player = new THREE.Mesh(geometry, material);
-        this.player.position.set(this.position.x,this.position.y,0);
+        this.player.position.set(this.position.x, this.position.y, 0);
 
         // player bounding box
         this.playerBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
@@ -78,6 +79,10 @@ export class Player {
         scene.add(this.player);
         this.setupControls();
 
+    }
+
+    getCurrentItem() {
+        return this.itemNames[this.currentItemIndex];
     }
 
     loadSounds(soundPaths) {
@@ -121,7 +126,7 @@ export class Player {
     updateBoundingBox() {
         this.playerBB.setFromObject(this.player);
     }
-    
+
     applyGravity() {
         if (!this.onGround) {
             if (this.velocity.y < this.terminalVelocity) {
@@ -132,7 +137,7 @@ export class Player {
         }
     }
 
-    update() {
+    update(deltaTime) {
         this.handleInput();
 
         this.applyGravity();
@@ -142,8 +147,8 @@ export class Player {
             y: this.position.y
         };
 
-        nextPosition.x += this.velocity.x;
-        nextPosition.y += this.velocity.y;
+        nextPosition.x += this.velocity.x * deltaTime;
+        nextPosition.y += this.velocity.y * deltaTime;
 
         //console.log(`y speed: ${this.velocity.y}`)
 
@@ -169,7 +174,7 @@ export class Player {
         if (!collision.onGround) {
             this.onGround = false;
         }
-        
+
         this.player.position.set(this.position.x, this.position.y, 0);
         this.updateBoundingBox();
         this.updateGhost();
@@ -230,7 +235,7 @@ export class Player {
 
         // reset position
         this.player.position.copy(originalPosition);
-                
+
         return collisionResponse;
     }
 
@@ -252,7 +257,7 @@ export class Player {
 
         const blockCenter = {
             x: (blockBox.min.x + blockBox.max.x) / 2,
-            y: (blockBox.min.y + blockBox.max.y) /2
+            y: (blockBox.min.y + blockBox.max.y) / 2
         };
         // if player x is less than block center then collision was to right otherwise left
         if (Math.abs(overlapX) < Math.abs(overlapY)) {
@@ -270,7 +275,6 @@ export class Player {
 
     switchItem(index) {
         if (index >= 0 && index < this.items.length) {
-            console.log('Item switched: ', index + 1);
             this.currentItemIndex = index;
         }
     }
@@ -297,7 +301,7 @@ export class Player {
             } else if (this.keys['ArrowRight'] || this.keys['d']) {
                 if (this.velocity.x >= this.maxVelocity) {
                     this.velocity.x = this.maxVelocity;
-                } else{
+                } else {
                     this.velocity.x += this.speed;
                     if (this.velocity.x < 0) {
                         this.velocity.x += this.speed;
@@ -306,10 +310,15 @@ export class Player {
             } else {
                 this.applyFriction();
             }
-            
-            if ((this.keys['ArrowUp'] || this.keys['w']) && this.onGround) {
+
+            if ((this.keys['ArrowUp'] || this.keys['w']) && this.onGround && !this.jumpPressed) {
                 this.velocity.y = this.jumpSpeed;
                 this.onGround = false;
+                this.jumpPressed = true;
+            }
+
+            if (!(this.keys['ArrowUp'] || this.keys['w'])) {
+                this.jumpPressed = false;
             }
 
             if (this.keys['1']) {
@@ -349,7 +358,7 @@ export class Player {
         this.mouseRaycaster.setFromCamera(this.mouse, this.camera);
 
         this.previousMousePosition = this.currentMousePosition;
-        this.currentMousePosition = {x: Math.floor(this.mouse.x), y: Math.floor(this.mouse.y)};
+        this.currentMousePosition = { x: Math.floor(this.mouse.x), y: Math.floor(this.mouse.y) };
 
         const intersectionPoint = this.getRayPlaneIntersection(
             this.camera,
@@ -359,10 +368,12 @@ export class Player {
         this.currentMousePosition.x = Math.floor(intersectionPoint.x);
         this.currentMousePosition.y = Math.floor(intersectionPoint.y);
 
+        const currentItem = this.getCurrentItem();
+
         // update ghost block if using block removing or placing items otherwise don't
         if ((!this.mouseInSameSpot(this.previousMousePosition, this.currentMousePosition) || !this.ghostBlockOn) && this.currentItemIndex < 2) {
             this.world.removeBlock(this.previousMousePosition.x, this.previousMousePosition.y, "ghost");
-            this.world.blockGhost(Math.floor(intersectionPoint.x), Math.floor(intersectionPoint.y), this.playerBB);
+            this.world.blockGhost(Math.floor(intersectionPoint.x), Math.floor(intersectionPoint.y), this.playerBB, currentItem);
             this.ghostBlockOn = true;
         }
         else if (this.currentItemIndex >= 2 || this.isDead) {
@@ -374,13 +385,13 @@ export class Player {
     mouseInSameSpot(previousMousePosition, currentMousePosition) {
         if (previousMousePosition.x != currentMousePosition.x || previousMousePosition.y != currentMousePosition.y) {
             return false;
-        }   else {
+        } else {
             return true;
         }
     }
 
     onClick() {
-        if (!this.isDead) {this.useItem();}
+        if (!this.isDead) { this.useItem(); }
     }
     useItem() {
         this.items[this.currentItemIndex].use();
@@ -409,7 +420,7 @@ export class Player {
 
         const t = -camera.position.z / rayDirection.z;
 
-        const intersectionPoint = new THREE.Vector3 (
+        const intersectionPoint = new THREE.Vector3(
             camera.position.x + t * rayDirection.x,
             camera.position.y + t * rayDirection.y,
             0 // z is always 0

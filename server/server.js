@@ -32,7 +32,6 @@ app.get('/', (req, res) => {
 
 const world = new World();
 let players = new Map();
-console.log(world.blocks.size);
 
 // this handles all the interactions of a client with the server
 io.on('connection', (socket) => {
@@ -59,7 +58,7 @@ io.on('connection', (socket) => {
         });
 
         // Send existing player info to new player
-        players.forEach((player, id) => { 
+        players.forEach((player, id) => {
             if (id !== socket.id) {
                 socket.emit('playerJoined', {
                     id: id,
@@ -69,7 +68,7 @@ io.on('connection', (socket) => {
             }
         });
     });
-    
+
     // Handle player movement/actions
     socket.on('playerUpdate', (updateData) => {
         const player = players.get(socket.id);
@@ -149,7 +148,7 @@ io.on('connection', (socket) => {
                 y: y,
                 health: blockData.health
             });
-            
+
         }
 
     });
