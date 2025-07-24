@@ -5,9 +5,10 @@ import { Projectiles } from './projectiles.js';
 import { World } from './world.js';
 
 export class Game {
-    constructor(socket) {
+    constructor(socket, playerName) {
         this.socket = socket;
         this.otherPlayers = new Map();
+        this.playerName = playerName;
 
         // using this to calculate FPS
         this.frameCount = 0;
@@ -16,13 +17,14 @@ export class Game {
 
         this.aspectRatio = 16 / 9;
 
-        this.windowHeight = window.innerHeight;
-        this.windowWidth = this.windowHeight * this.aspectRatio;
+        this.windowHeight = window.outerHeight;
+        //this.windowWidth = this.windowHeight * this.aspectRatio;
+        this.windowWidth = window.outerWidth;
 
         this.scene = new THREE.Scene();
         this.listener = new THREE.AudioListener();
 
-        this.camera = new THREE.PerspectiveCamera(90, this.windowWidth / this.windowHeight);
+        this.camera = new THREE.PerspectiveCamera(100, this.windowWidth / this.windowHeight);
         this.camera.add(this.listener);
         const canvas = document.querySelector('canvas.webgl');
 
@@ -60,13 +62,13 @@ export class Game {
                         this.camera,
                         playerStartPosition,
                         this,
-                        this.listener
+                        this.listener,
+                        this.playerName
+
                     );
 
                     // creates a class to handle all projectiles in the world
                     this.projectiles = new Projectiles(this.scene);
-
-                    this.socket.emit('playerJoin', this.player.position, this.player.velocity);
 
                     this.scene.add(this.camera);
 
@@ -83,15 +85,15 @@ export class Game {
                     // time stamp for interpolation
                     this.lastUpdateTime = performance.now();
 
+                    // for communication with server
                     this.updateRate = 15; // milliseconds
                     this.lastUpdateSent = 0;
 
                     // buffer for interpolation
                     this.positionBuffer = new Map();
 
-                    this.setupSocketListeners();
-                    this.setupEventListeners();
                     this.animate();
+                    //this.update();
 
                     // Mark world as loaded
                     this.worldLoaded = true;
@@ -116,21 +118,25 @@ export class Game {
 
     setupSocketListeners() {
         this.socket.on('playerJoined', (playerData) => {
-            console.log('Player joined:', playerData.id);
+            console.log(`Player ${playerData.name} joined`, playerData.id);
             if (!this.otherPlayers.has(playerData.id)) {
                 const newPlayer = new OtherPlayer(
                     this.scene,
                     this.world,
                     new THREE.Vector2().copy(playerData.velocity),
                     new THREE.Vector2().copy(playerData.position),
-                    100,
+                    playerData.health || 100,
                     this.listener
                 );
+
+                // Work in giving players a name label in the game
+                newPlayer.playerName = playerData.name;
+
                 this.otherPlayers.set(playerData.id, newPlayer);
             }
         });
 
-        // probably will use this to update player position and everything else
+        // Updates player movement
         this.socket.on('playerMoved', (updateData) => {
             const player = this.otherPlayers.get(updateData.id);
             if (player) {
@@ -215,6 +221,18 @@ export class Game {
                 this.otherPlayers.delete(playerId);
                 this.positionBuffer.delete(playerId);
             }
+        });
+
+        this.socket.on('roomJoined', (roomData) => {
+            console.log('Successfully joined room:', roomData);
+        });
+
+        this.socket.on('roomCreated', (roomData) => {
+            console.log('Successfully created room:', roomData);
+        });
+
+        this.socket.on('roomLeft', () => {
+            console.log('Left the room');
         });
     }
 
@@ -305,6 +323,11 @@ export class Game {
             this.player.didDamage = false;
             this.player.fired = false;
         }
+    }
+
+    leaveRoom() {
+        this.socket.emit('leaveRoom');
+        this.cleanup();
     }
 
     setupEventListeners() {

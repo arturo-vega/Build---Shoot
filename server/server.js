@@ -4,6 +4,7 @@ import path from 'path';
 import { Server } from 'socket.io';
 import { fileURLToPath } from 'url';
 import { World } from './world.js';
+import { GameRoom } from './gameroom.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,6 +21,7 @@ const io = new Server(server, {
         credentials: true
     }
 });
+
 // Serve static files from the client directory
 app.use(express.static(path.join(__dirname, '../client')));
 
@@ -28,58 +30,158 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../client/index.html'));
 });
 
+const rooms = new Map();
+const playerRooms = new Map();
+let nextRoomId = 0;
+
+function generateRoomId() {
+    nextRoomId++;
+    return nextRoomId;
+}
+
+function getRoomsList() {
+    return Array.from(rooms.values()).map(room => room.toJSON());
+}
+
+function cleanupEmptyRooms() {
+    const now = Date.now();
+    const ROOM_TIMEOUT = 30 * 60 * 1000; // 30 mins
+
+    for (const [roomId, room] of rooms.entries()) {
+        if (room.isEmpty() && (now - room.lastActivity > ROOM_TIMEOUT)) {
+            console.log(`Cleaning up empty room: ${roomId}`);
+            rooms.delete(roomId);
+        }
+    }
+}
+
+// cleanup rooms every 5 mins
+setInterval(cleanupEmptyRooms, 5 * 60 * 1000);
+
 //const loader = new THREE.ObjectLoader();
 
-const world = new World();
-let players = new Map();
-
-// this handles all the interactions of a client with the server
 io.on('connection', (socket) => {
-    console.log('A user connected', socket.id);
+    console.log('A user connected with socket id: ', socket.id);
 
-    // send the world state to a player who joins immediately
-    // can't send maps over socket so need to do this first
-    let transitBlocks = JSON.stringify(Array.from(world.blocks));
-    socket.emit('initialWorldState', transitBlocks);
+    socket.on('playerJoin', (playerData) => {
+        console.log(`Player ${playerData.name} connected`);
 
-    // When new player joins get player id and set player position info
-    socket.on('playerJoin', (position, velocity) => {
-        players.set(socket.id, {
-            position: position,
-            velocity: velocity,
-            lastUpdate: performance.now()
-        });
+        socket.playerName = playerData.name;
 
-        // Send new player info to everyone else
-        socket.broadcast.emit('playerJoined', {
-            id: socket.id,
-            position: position,
-            velocity: velocity
-        });
-
-        // Send existing player info to new player
-        players.forEach((player, id) => {
-            if (id !== socket.id) {
-                socket.emit('playerJoined', {
-                    id: id,
-                    position: player.position,
-                    velocity: player.velocity
-                });
-            }
-        });
+        socket.emit('roomList', getRoomsList());
     });
 
-    // Handle player movement/actions
-    socket.on('playerUpdate', (updateData) => {
-        const player = players.get(socket.id);
-        if (player) {
-            player.position = updateData.position;
-            player.velocity = updateData.velocity;
-            player.health = updateData.health;
-            player.lastUpdate = performance.now();
+    socket.on('createRoom', (data) => {
+        const roomId = generateRoomId();
+        const room = new GameRoom(roomId, socket.playerName || data.playerName);
 
-            // broadcast update to other players
-            socket.broadcast.emit('playerMoved', {
+        rooms.set(roomId, room);
+
+        room.addPlayer(socket.id, {
+            name: socket.playerName || data.playerName,
+            position: { x: 0, y: 0, z: 0 },
+            velocity: { x: 0, y: 0, z: 0 },
+            health: 100
+        });
+
+        socket.join(roomId);
+        playerRooms.set(socket.id, roomId);
+
+        console.log(`Player ${socket.playerName} created room ${roomId}`);
+
+        socket.emit('roomCreated', {
+            roomId: roomId,
+            room: room.toJSON()
+        });
+
+        let transitBlocks = JSON.stringify(Array.from(room.world.blocks));
+        socket.emit('initialWorldState', transitBlocks);
+
+        io.emit('roomList', getRoomsList());
+    });
+
+    socket.on('joinRoom', (data) => {
+        const room = rooms.get(data.roomId);
+
+        if (!room) {
+            socket.emit('roomNotFound');
+            console.log(console.log(`Player ${socket.playerName} tried to join room ${data.roomId} but room not found.`));
+            return;
+        }
+
+        if (room.isFull()) {
+            socket.emit('roomFull');
+            console.log(console.log(`Player ${socket.playerName} tried to join room ${data.roomId} but room was full.`));
+            return;
+        }
+
+        room.addPlayer(socket.id, {
+            name: socket.playerName,
+            position: { x: 0, y: 0, z: 0 },
+            velocity: { x: 0, y: 0, z: 0 },
+            health: 100
+        });
+
+        if (room.roomHasPlayer(socket.id)) {
+            socket.join(data.roomId);
+            playerRooms.set(socket.id, data.roomId);
+
+            console.log(`Player ${socket.playerName} joined room ${data.roomId}`);
+
+            socket.emit('roomJoined', {
+                roomId: data.roomId,
+                room: room.toJSON()
+            });
+
+            // send world state of the room
+            let transitBlocks = JSON.stringify(Array.from(room.world.blocks));
+            socket.emit('initialWorldState', transitBlocks);
+
+            socket.to(data.roomId).emit('playerJoined', {
+                id: socket.id,
+                name: socket.playerName,
+                position: { x: 0, y: 0, z: 0 },
+                velocity: { x: 0, y: 0, z: 0 },
+                health: 100
+            });
+
+            room.players.forEach((player, id) => {
+                if (id != socket.id) {
+                    socket.emit('playerJoined', {
+                        id: id,
+                        name: player.name,
+                        position: player.position,
+                        velocity: player.velocity,
+                        health: player.health
+                    });
+                }
+            });
+
+            // broadcast updated room list
+            io.emit('roomList', getRoomsList());
+        }
+    });
+
+    socket.on('getRooms', () => {
+        socket.emit('roomsList', getRoomsList());
+    });
+
+    socket.on('playerUpdate', (updateData) => {
+        const roomId = playerRooms.get(socket.id);
+        if (!roomId) return;
+
+        const room = rooms.get(roomId);
+        if (!room) return;
+
+        const success = room.updatePlayer(socket.id, {
+            position: updateData.position,
+            velocity: updateData.velocity,
+            health: updateData.health
+        });
+
+        if (success) {
+            // broadcast update to other players in the room
+            socket.to(roomId).emit('playerMoved', {
                 id: socket.id,
                 position: updateData.position,
                 velocity: updateData.velocity,
@@ -89,78 +191,112 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Handle PVP damage ------------------------------------------------------------
     socket.on('playerHit', (damageInfo) => {
+        const roomId = playerRooms.get(socket.id);
+        if (!roomId) return;
 
-        const player = players.get(damageInfo.playerId)
-        // if the damageInfo playerid matches the id in the players map then they
-        // have been hit and send them the hit info. For everyone else update
-        // the new player hp
-        if (player) {
-            socket.broadcast.emit('playerDamaged', damageInfo);
+        const room = rooms.get(roomId);
+        if (!room) return;
+
+        const targetPlayer = room.players.get(damageInfo.playerId);
+        if (targetPlayer) {
+            socket.to(roomId).emit('playerDamaged', damageInfo);
         }
     });
 
-
-    // these two sockets used for creating projectile graphics and sound for other players
     socket.on('playerFiredDamagedBlock', (shotInfo) => {
-        socket.broadcast.emit('otherPlayerFiredDamagedBlock', shotInfo, socket.id);
+        const roomId = playerRooms.get(socket.id);
+        if (roomId) {
+            socket.to(roomId).emit('otherPlayerFiredDamagedBlock', shotInfo, socket.id);
+        }
     });
 
     socket.on('playerFired', (shotInfo) => {
-        socket.broadcast.emit('otherPlayerFired', shotInfo, socket.id);
+        const roomId = playerRooms.get(socket.id);
+        if (roomId) {
+            socket.to(roomId).emit('otherPlayerFired', shotInfo, socket.id);
+        }
     });
 
-    // handle block changes
     socket.on('blockModified', (blockData) => {
+        const roomId = playerRooms.get(socket.id);
+        if (!roomId) return;
 
-        const x = blockData.x
-        const y = blockData.y
+        const room = rooms.get(roomId);
+        if (!room) return;
 
-        if (blockData.updateType === 'added') {
-            world.createBlock(x, y);
-            socket.broadcast.emit('mapUpdated', {
+        const x = blockData.x;
+        const y = blockData.y;
+
+        if (blockData.updateType == 'added') {
+            room.world.createBlock(x, y);
+            socket.to(roomId).emit('mapUpdated', {
                 updateType: 'added',
                 x: x,
                 y: y
             });
         }
-        else if (blockData.updateType === 'removed') {
-            const blocksToRemove = world.checkForDisconnectedBlocks(x, y);
+        else if (blockData.updateType == 'removed') {
+            const blocksToRemove = room.world.checkForDisconnectedBlocks(x, y);
 
             for (let i = 0; i < blocksToRemove.length; i++) {
                 const block = blocksToRemove[i];
                 if (!block) continue;
-                // using io.emit so that all players, even the player who sent the 'blockModified' emission, receives the updated map
-                io.emit('mapUpdated', {
+
+                io.to(roomId).emit('mapUpdated', {
                     updateType: 'removed',
                     x: block.x,
                     y: block.y
                 });
-                world.removeBlock(block.x, block.y);
+                room.world.removeBlock(block.x, block.y);
             }
         }
-        else if (blockData.updateType === 'damaged') {
-            world.updateBlockHealth(x, y, blockData.health)
-            socket.broadcast.emit('mapUpdated', {
+        else if (blockData.updateType == 'damaged') {
+            room.world.updateBlockHealth(x, y, blockData.health);
+            socket.to(roomId).emit('mapUpdated', {
                 updateType: 'damaged',
                 x: x,
                 y: y,
                 health: blockData.health
             });
-
         }
+    });
 
+    socket.on('leaveRoom', () => {
+        const roomId = playerRooms.get(socket.id);
+        if (roomId) {
+            handlePlayerLeaveRoom(socket, roomId);
+        }
     });
 
     socket.on('disconnect', () => {
         console.log('User disconnected', socket.id);
-        players.delete(socket.id);
-        io.emit('playerLeft', socket.id);
+
+        const roomId = playerRooms.get(socket.id);
+        if (roomId) {
+            handlePlayerLeaveRoom(socket, roomId);
+        }
     });
 });
 
+function handlePlayerLeaveRoom(socket, roomId) {
+    const room = rooms.get(roomId);
+    if (room) {
+        room.removePlayer(socket.id);
+
+        socket.to(roomId).emit('playerLeft', socket.id);
+
+        if (room.isEmpty()) {
+            console.log(`Room ${roomId} is now empty`);
+        }
+
+        io.emit('roomList', getRoomsList());
+    }
+
+    socket.leave(roomId);
+    playerRooms.delete(socket.id);
+}
+
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
-});
-
+})

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Item } from '/item.js';
 
 export class Player {
-    constructor(scene, world, camera, startPosition, game, listener) {
+    constructor(scene, world, camera, startPosition, game, listener, playerName) {
         this.game = game;
         this.world = world;
         this.camera = camera;
@@ -15,6 +15,7 @@ export class Player {
         this.position = startPosition;
         this.previousMousePosition = { x: 10, y: 10 };
         this.currentMousePosition = { x: 0, y: 0 };
+        this.playerName = playerName;
 
         // will use this for items
         this.wandCharge = 100;
