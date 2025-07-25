@@ -92,6 +92,8 @@ export class Game {
                     // buffer for interpolation
                     this.positionBuffer = new Map();
 
+                    this.setupSocketListeners();
+
                     this.animate();
                     //this.update();
 
@@ -161,6 +163,7 @@ export class Game {
         });
 
         this.socket.on('mapUpdated', (blockData) => {
+            console.log("Recieved block update:", blockData.updateType);
             const x = blockData.x;
             const y = blockData.y;
             if (blockData.updateType === 'added') {
@@ -397,6 +400,9 @@ export class Game {
     updateOtherPlayers(deltaTime) {
         for (const [playerId, player] of this.otherPlayers) {
             const buffer = this.positionBuffer.get(playerId);
+
+
+
             if (buffer && buffer.length >= 2) {
                 this.interpolatePlayerPosition(player, buffer, deltaTime);
             }
@@ -407,7 +413,7 @@ export class Game {
 
 
             // update collisions
-            player.update();
+            //player.update();
         }
     }
 
@@ -420,11 +426,6 @@ export class Game {
         let previousUpdate = buffer[buffer.length - 2];
         let nextUpdate = buffer[buffer.length - 1];
 
-        //console.log(buffer.length);
-
-        //console.log("_________________________");
-        //console.log(`buffer[0]: ${buffer[0].timestamp} end of buffer: ${buffer[buffer.length - 1].timestamp}`)
-
         for (let i = buffer.length - 1; i > 0; i--) {
             if (buffer[i].timestamp > currentTime) {
                 previousUpdate = buffer[i - 1];
@@ -433,23 +434,16 @@ export class Game {
             }
         }
 
-        //let total = nextUpdate.timestamp - previousUpdate.timestamp;
-        //let progress = (currentTime - previousUpdate.timestamp) / total;
-        //console.log("_________________________________________")
-        //console.log(`Previous Update: ${previousUpdate.timestamp} Next Update: ${nextUpdate.timestamp} Difference: ${nextUpdate.timestamp - previousUpdate.timestamp}`);
-        //console.log(`Current time: ${currentTime} Difference from previous update: ${currentTime - previousUpdate.timestamp}`)
-        //console.log(`Total: ${total}  Progress = ${progress}`);
-
         // sets this vector to be the vector linearly interpolated between v1 and v2 by progress
         player.position.lerpVectors(
             previousUpdate.position,
-            nextUpdate.position,
+            nextUpdate.position * deltaTime,
             0.2
         );
         // ditto
         player.velocity.lerpVectors(
             previousUpdate.velocity,
-            nextUpdate.velocity,
+            nextUpdate.velocity * deltaTime,
             0.2
         );
     }

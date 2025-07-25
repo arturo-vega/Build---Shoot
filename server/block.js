@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 
 export class Block {
-    constructor(x, y, type, health = 100) {
+    constructor(x, y, type, health = 200) {
         this.type = type;
         this.x = x;
         this.y = y;
+        this.destroyed = false;
 
         const blockTypes = {
             'steel': {
@@ -13,12 +14,12 @@ export class Block {
                 color: 0x808080,
             },
             'concrete': {
-                health: 100,
+                health: 300,
                 destructible: true,
                 color: 0x8b8b8b,
             },
             'wood': {
-                health: 50,
+                health: 200,
                 destructible: true,
                 color: 0x8b4513,
             }
@@ -38,7 +39,7 @@ export class Block {
     }
 
     createMesh(color) {
-        const geometry = new THREE.BoxGeometry(1,1,1);
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
         const material = new THREE.MeshPhongMaterial({ color });
         const mesh = new THREE.Mesh(geometry, material);
         mesh.castShadow = true;
@@ -63,16 +64,10 @@ export class Block {
         this.boundingBox.setFromObject(this.mesh);
     }
 
-    damage(amount) {
-        if (!this.destructible) return false;
+    damage(blockHealth) {
+        if (!this.destructible) return;
 
-        this.health = Math.max(0, this.health - amount);
-
-        const damagePercentage = this.health / this.maxHealth;
-        this.mesh.material.opacity = 0.5 + (damagePercentage * 0.5);
-
-        // return true if block is destroyed
-        return this.health === 0;
+        this.health = Math.max(0, blockHealth);
     }
 
     destroy() {

@@ -22,6 +22,10 @@ const io = new Server(server, {
     }
 });
 
+// Note:
+// io.to(roomId).emit(event) = broadcasts to everyone including the person who sent the event
+// socket.to(roomId).emit(event) = broadcasts toe veryone EXCLUDING the person who sent the event
+
 // Serve static files from the client directory
 app.use(express.static(path.join(__dirname, '../client')));
 
@@ -73,7 +77,7 @@ io.on('connection', (socket) => {
 
     socket.on('createRoom', (data) => {
         const roomId = generateRoomId();
-        const room = new GameRoom(roomId, socket.playerName || data.playerName);
+        const room = new GameRoom(roomId, socket.playerName /*|| data.playerName*/);
 
         rooms.set(roomId, room);
 
@@ -173,13 +177,13 @@ io.on('connection', (socket) => {
         const room = rooms.get(roomId);
         if (!room) return;
 
-        const success = room.updatePlayer(socket.id, {
+        room.updatePlayer(socket.id, {
             position: updateData.position,
             velocity: updateData.velocity,
             health: updateData.health
         });
 
-        if (success) {
+        if (room.roomHasPlayer(socket.id)) {
             // broadcast update to other players in the room
             socket.to(roomId).emit('playerMoved', {
                 id: socket.id,
@@ -193,6 +197,7 @@ io.on('connection', (socket) => {
 
     socket.on('playerHit', (damageInfo) => {
         const roomId = playerRooms.get(socket.id);
+
         if (!roomId) return;
 
         const room = rooms.get(roomId);
@@ -220,45 +225,29 @@ io.on('connection', (socket) => {
 
     socket.on('blockModified', (blockData) => {
         const roomId = playerRooms.get(socket.id);
+
         if (!roomId) return;
 
         const room = rooms.get(roomId);
         if (!room) return;
 
-        const x = blockData.x;
-        const y = blockData.y;
-
-        if (blockData.updateType == 'added') {
-            room.world.createBlock(x, y);
-            socket.to(roomId).emit('mapUpdated', {
-                updateType: 'added',
-                x: x,
-                y: y
-            });
+        if (blockData.updateType === 'added') {
+            addBlock(blockData, room, roomId, socket);
+            console.log(`Block placed in room ${roomId}`);
         }
-        else if (blockData.updateType == 'removed') {
-            const blocksToRemove = room.world.checkForDisconnectedBlocks(x, y);
 
-            for (let i = 0; i < blocksToRemove.length; i++) {
-                const block = blocksToRemove[i];
-                if (!block) continue;
-
-                io.to(roomId).emit('mapUpdated', {
-                    updateType: 'removed',
-                    x: block.x,
-                    y: block.y
-                });
-                room.world.removeBlock(block.x, block.y);
-            }
+        else if (blockData.updateType === 'damaged') {
+            damageBlock(blockData, room, roomId, socket);
+            console.log(`Block damaged in room ${roomId}`);
         }
-        else if (blockData.updateType == 'damaged') {
-            room.world.updateBlockHealth(x, y, blockData.health);
-            socket.to(roomId).emit('mapUpdated', {
-                updateType: 'damaged',
-                x: x,
-                y: y,
-                health: blockData.health
-            });
+
+        else if (blockData.updateType === 'removed') {
+            removeBlock(blockData, room, roomId, socket);
+            console.log(`Block destroyed in room ${roomId}`);
+        }
+
+        else {
+            console.error(`Uknown block update type: ${blockData.updateType}`);
         }
     });
 
@@ -270,7 +259,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        console.log('User disconnected', socket.id);
+        console.log(`Player ${socket.playerName} disconnected.`);
 
         const roomId = playerRooms.get(socket.id);
         if (roomId) {
@@ -278,6 +267,75 @@ io.on('connection', (socket) => {
         }
     });
 });
+
+function addBlock(blockData, room, roomId, socket) {
+    if (blockData.updateType === 'added') {
+        room.world.createBlock(blockData.x, blockData.y);
+        socket.to(roomId).emit('mapUpdated', {
+            updateType: 'added',
+            x: blockData.x,
+            y: blockData.y
+        });
+
+    } else {
+        console.error(`Passed incorrect type '${blockData.updateType}' into addBlock function`);
+        return;
+    }
+}
+
+function damageBlock(blockData, room, roomId, socket) {
+    if (blockData.updateType === 'damaged') {
+        room.world.damageBlock(blockData.x, blockData.y, blockData.health);
+
+        // world keeps track of blocks removed and needs to be sent out if damage
+        // to a block caused it to be destroyed
+        if (room.world.blocksRemoved.length > 0) {
+            for (let i = 0; i < room.world.blocksRemoved.length; i++) {
+                let block = room.world.blocksRemoved[i];
+                if (!block) continue;
+                io.to(roomId).emit('mapUpdated', {
+                    updateType: 'removed',
+                    x: block.x,
+                    y: block.y
+                });
+            }
+            room.world.blocksRemoved = [];
+        } else {
+            socket.to(roomId).emit('mapUpdated', {
+                updateType: 'damaged',
+                x: blockData.x,
+                y: blockData.y,
+                health: blockData.health
+            });
+        }
+
+    } else {
+        console.error(`Passed incorrect type '${blockData.updateType}' into damageBlock function`);
+        return;
+    }
+}
+
+function removeBlock(blockData, room, roomId, socket) {
+    if (blockData.updateType === 'removed') {
+        room.world.removeBlock(blockData.x, blockData.y, blockData.type)
+
+        for (let i = 0; i <= room.world.blocksRemoved.length; i++) {
+            let block = room.world.blocksRemoved[i];
+            if (!block) continue;
+
+            io.to(roomId).emit('mapUpdated', {
+                updateType: 'removed',
+                x: block.x,
+                y: block.y
+            });
+        }
+        // reset the removed blocks in the world to 0
+        room.world.blocksRemoved = [];
+    } else {
+        console.error(`Passed incorrect type '${blockData.updateType}' into removeBlock function`);
+        return;
+    }
+}
 
 function handlePlayerLeaveRoom(socket, roomId) {
     const room = rooms.get(roomId);

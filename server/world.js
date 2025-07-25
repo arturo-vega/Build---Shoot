@@ -5,7 +5,9 @@ export class World {
         this.blocks = new Map();
         this.blockGhosts = new Map();
 
-        this.lastBlockModified = {x: 0, y: 0};
+        this.blocksRemoved = [];
+
+        this.lastBlockModified = { x: 0, y: 0 };
 
         // creates initial blocks for the stage
         for (let i = 0; i < 100; i++) {
@@ -16,32 +18,60 @@ export class World {
     }
 
     createBlock(x, y, type = 'wood', health) {
-            const key = `${x},${y}`;
-    
-            if (!this.isValidSpot(x,y)) return null;
-    
-            const block = new Block(x, y, type, health);
-            this.blocks.set(key, block);
-    
-            this.lastBlockModified = { x , y };
+        const key = `${x},${y}`;
+
+        if (!this.isValidSpot(x, y)) return;
+
+        const block = new Block(x, y, type, health);
+        this.blocks.set(key, block);
+
+        this.lastBlockModified = { x, y };
     }
 
-    damageBlock(x, y, amount) {
+    damageBlock(x, y, blockHealth) {
         const block = this.getBlockAt(x, y);
 
-        if (!block) return false;
+        if (!block) return;
 
-        const destroyed = block.damage(amount);
+        block.damage(blockHealth);
+        this.lastBlockModified = { x, y };
 
-        if (destroyed) {
-            this.removeBlock(x, y);
-            this.blockRemoved = true;
-        } else {
-            this.blockDamaged = true;
-            this.damagedBlockHealth = block.health;
+        if (block.health <= 0) {
+            this.removeBlock(x, y, block.type);
         }
+    }
 
-        return true;
+    removeBlock(x, y, type = 'wood') {
+        // type doesn't really matter only to make sure that it's not a ghostblock
+        let key = `${x},${y}`;
+        if (type === 'ghost') {
+            let block = this.blockGhosts.get(key);
+            if (block) {
+                block.geometry.dispose();
+                block.material.dispose();
+                this.blockGhosts.delete(key);
+            }
+
+        } else {
+            let block = this.blocks.get(key);
+            if (block) {
+                this.blocksRemoved = this.checkForDisconnectedBlocks(x, y);
+
+                for (let i = 0; i < this.blocksRemoved.length; i++) {
+                    block = this.blocksRemoved[i];
+                    key = `${block.x},${block.y}`;
+                    console.log(`Removing block ${block.x}, ${block.y}`)
+                    if (block) {
+                        block.destroy();
+                        this.blocks.delete(key);
+                    }
+                }
+                this.lastBlockModified = {
+                    x: x,
+                    y: y
+                }
+            }
+        }
     }
 
     // neighbor is a string indicating where the neighbor block is relative to the coordinates of the block
@@ -51,19 +81,19 @@ export class World {
         if (!destroyed) {
             switch (neighbor) {
                 case 'right':
-                    block.neighbors.right = {x: x+1, y: y};
+                    block.neighbors.right = { x: x + 1, y: y };
                     break;
 
                 case 'left':
-                    block.neighbors.left = {x: x-1, y: y};
+                    block.neighbors.left = { x: x - 1, y: y };
                     break;
 
                 case 'top':
-                    block.neighbors.top = {x: x, y: y+1};
+                    block.neighbors.top = { x: x, y: y + 1 };
                     break;
 
                 case 'bottom':
-                    block.neighbors.bottom = {x: x, y: y-1};
+                    block.neighbors.bottom = { x: x, y: y - 1 };
                     break;
             }
         } else {
@@ -89,10 +119,10 @@ export class World {
 
     getNeighborBlocks(x, y) {
         return [
-            {x: x-1, y: y},
-            {x: x+1, y: y},
-            {x: x, y: y-1},
-            {x: x, y: y+1}
+            { x: x - 1, y: y },
+            { x: x + 1, y: y },
+            { x: x, y: y - 1 },
+            { x: x, y: y + 1 }
         ]
     }
 
@@ -102,7 +132,7 @@ export class World {
         let stack = [];
         let goodBlocks = [];
         let startingBlocks = [];
-        let badBlocks =[];
+        let badBlocks = [];
 
         let connected = false;
 
@@ -116,7 +146,6 @@ export class World {
             let neighborBlock = this.getBlockAt(neighborBlocks[i].x, neighborBlocks[i].y);
             if (neighborBlock) {
                 startingBlocks.push(neighborBlock);
-                console.log('Starting block: ', neighborBlock.x, neighborBlock.y);
             }
         }
 
@@ -167,8 +196,6 @@ export class World {
                 }
             }
         }
-
-        console.log(badBlocks);
         return badBlocks;
     }
 
@@ -182,36 +209,16 @@ export class World {
     updateBlockHealth(x, y, health) {
         const block = this.getBlockAt(x, y);
         if (block) {
-            block.updateBlockHealth(health);
-        }
-    }
-
-    removeBlock(x,y,type) {
-        const key = `${x},${y}`;
-        if (type === 'ghost') {
-            let block = this.blockGhosts.get(key);
-            if (block) {
-                block.geometry.dispose();
-                block.material.dispose();
-                this.blockGhosts.delete(key);
-            }
-        // remove block
-        } else {
-            let block = this.blocks.get(key);
-            if (block) {
-                block.destroy();
-                this.blocks.delete(key);
-
-                this.lastBlockModified = {
-                    x: x,
-                    y: y
-                }
-            }
+            block.health = health;
         }
     }
 
     getBlockAt(x, y) {
         return this.blocks.get(`${x},${y}`);
+    }
+
+    removeBlockFromSet(x, y) {
+        this.blocks.remove(`${x},${y}`);
     }
 
     // used to check blocks around player for collision detection
