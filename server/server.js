@@ -109,13 +109,13 @@ io.on('connection', (socket) => {
 
         if (!room) {
             socket.emit('roomNotFound');
-            console.log(console.log(`Player ${socket.playerName} tried to join room ${data.roomId} but room not found.`));
+            console.log(`Player ${socket.playerName} tried to join room ${data.roomId} but room not found.`);
             return;
         }
 
         if (room.isFull()) {
             socket.emit('roomFull');
-            console.log(console.log(`Player ${socket.playerName} tried to join room ${data.roomId} but room was full.`));
+            console.log(`Player ${socket.playerName} tried to join room ${data.roomId} but room was full.`);
             return;
         }
 

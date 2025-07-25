@@ -144,19 +144,15 @@ function App() {
 
     if (gameState == 'playing') {
         return (
-            <>
-                <div className="game-ui">
-                    <button
-                        className="back-button"
-                        onClick={backToMenu}
-                    >Back</button>
-                </div>
-                <div className="game-hud">
-                    <HealthBar health={playerHealth} />
-                    <WeaponDisplay weapon={currentWeapon} />
-                    <FPSCounter fps={gameFPS} />
-                </div>
-            </>
+            <div className="game-hud">
+                <HealthBar health={playerHealth} />
+                <WeaponDisplay weapon={currentWeapon} />
+                <FPSCounter fps={gameFPS} />
+                <button
+                    className="back-button"
+                    onClick={backToMenu}
+                >Back</button>
+            </div>
         );
     }
 

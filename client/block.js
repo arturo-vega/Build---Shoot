@@ -64,7 +64,8 @@ export class Block {
 
         this.loadSounds();
 
-        this.updateBoundingBox();
+        this.boundingBox = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
+        this.boundingBox.setFromObject(this.mesh);
     }
 
     createMesh(color) {
@@ -140,11 +141,6 @@ export class Block {
             this.type = type;
             this.health = blockTypes[type].health;
         }
-    }
-
-    updateBoundingBox() {
-        this.boundingBox = new THREE.Box3();
-        this.boundingBox.setFromObject(this.mesh);
     }
 
     damage(amount) {

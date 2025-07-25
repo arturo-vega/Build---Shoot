@@ -32,11 +32,11 @@ export class Player {
         // make these static
         this.maxVelocity = 6;
         this.minVelocity = -6;
-        this.terminalVelocity = -10
-        this.friction = 0.1;
-        this.jumpSpeed = 30;
+        this.acceleration = 0.5;
+        this.terminalVelocity = -15
+        this.friction = 0.5;
+        this.jumpSpeed = 20;
         this.gravity = -0.5;
-        this.speed = 60;
 
         this.mouseRaycaster = new THREE.Raycaster();
         this.mouse = new THREE.Vector2();
@@ -140,51 +140,57 @@ export class Player {
 
     update(deltaTime) {
         this.handleInput();
-
+        this.checkGroundStatus();
         this.applyGravity();
 
-        const nextPosition = {
-            x: this.position.x,
-            y: this.position.y
-        };
-
-        nextPosition.x += this.velocity.x * deltaTime;
-        nextPosition.y += this.velocity.y * deltaTime;
-
-        //console.log(`y speed: ${this.velocity.y}`)
-
-        const collision = this.checkCollisions(nextPosition);
-
-        // horizontal movement handling
-        if (!collision.cancelHorizontal) {
-            this.position.x = nextPosition.x;
-        } else {
-            this.velocity.x = 0;
-        }
-
-        if (!collision.cancelVertical) {
-            this.position.y = nextPosition.y;
-        } else {
-            this.velocity.y = 0;
-            if (collision.onGround) {
-                this.onGround = true;
-                this.position.y = nextPosition.y;
-            }
-        }
-
-        if (!collision.onGround) {
-            this.onGround = false;
-        }
+        this.moveHorizontally(deltaTime);
+        this.moveVertically(deltaTime);
 
         this.player.position.set(this.position.x, this.position.y, 0);
         this.updateBoundingBox();
         this.updateGhost();
-        //console.log(`Player x: ${this.position.x} y: ${this.position.y}`)
     }
 
-    checkCollisions(nextPosition) {
-        const originalPosition = this.player.position.clone();
+    checkGroundStatus() {
+        const groundCheckDistance = 0.01;
+        const testPosition = {
+            x: this.position.x,
+            y: this.position.y - groundCheckDistance
+        };
 
+        this.onGround = this.hasCollisionAt(testPosition);
+    }
+
+    moveHorizontally(deltaTime) {
+        if (Math.abs(this.velocity.x) < 0.01) return;
+
+        const nextX = this.position.x + this.velocity.x * deltaTime;
+        const testPosition = { x: nextX, y: this.position.y };
+
+        if (!this.hasCollisionAt(testPosition)) {
+            this.position.x = nextX;
+        } else {
+            this.velocity.x = 0;
+            // maybe do precise positioning function
+        }
+    }
+
+    moveVertically(deltaTime) {
+        if (Math.abs(this.velocity.y) < 0.01) return;
+
+        const nextY = this.position.y + this.velocity.y * deltaTime;
+        const testPosition = { x: this.position.x, y: nextY };
+
+        if (!this.hasCollisionAt(testPosition)) {
+            this.position.y = nextY;
+            this.onGround = false;
+        } else {
+            this.velocity.y = 0;
+        }
+    }
+
+    hasCollisionAt(nextPosition) {
+        const originalPosition = this.player.position.clone();
         this.player.position.set(nextPosition.x, nextPosition.y, 0);
         this.updateBoundingBox();
 
@@ -195,81 +201,40 @@ export class Player {
             Math.floor(nextPosition.y + 2)
         );
 
-        let collisionResponse = {
-            hasCollision: false,
-            cancelHorizontal: false,
-            cancelVertical: false,
-            onGround: false
-        };
-
+        let hasCollision = false;
         for (let block of nearbyBlocks) {
-            //console.log(block);
-            //console.log(`Block: ${block} Bounding block: ${block.boundingBox}`);
             if (this.playerBB.intersectsBox(block.boundingBox)) {
-                const collision = this.getCollisionDirection(this.playerBB, block.boundingBox);
-
-                //console.log(`Collided with block at x: ${block.position.x} y: ${block.position.y} on the ${collision.direction}. Overlap: ${collision.overlap}`);
-                if (collision.direction === 'left') {
-                    collisionResponse.cancelHorizontal = true;
-                    nextPosition.x -= collision.overlap;
-                } else if (collision.direction === 'right') {
-                    collisionResponse.cancelHorizontal = true;
-                    nextPosition.x += collision.overlap;
-                } else if (collision.direction === 'top') {
-                    collisionResponse.cancelVertical = true;
-                    nextPosition.y -= collision.overlap;
-                } else if (collision.direction === 'bottom') {
-                    collisionResponse.cancelVertical = true;
-                    nextPosition.y += collision.overlap;
-                    collisionResponse.onGround = true;
-                }
-
-                collisionResponse.hasCollision = true;
-
-                // immediately updates position and bounding box after resolving collision
-                this.player.position.set(nextPosition.x, nextPosition.y, 0);
-                this.updateBoundingBox();
+                hasCollision = true;
+                break;
             }
         }
 
-        //console.log(`On ground: ${this.onGround}`);
-
         // reset position
         this.player.position.copy(originalPosition);
+        this.updateBoundingBox();
 
-        return collisionResponse;
+        return hasCollision;
     }
 
     getCollisionDirection(playerBox, blockBox) {
-        let overlapX = Math.min(playerBox.max.x - blockBox.min.x, blockBox.max.x - playerBox.min.x);
-        let overlapY = Math.min(playerBox.max.y - blockBox.min.y, blockBox.max.y - playerBox.min.y);
 
-        if (overlapX > 1) {
-            overlapX = .9;
-        }
-        if (overlapY > 1) {
-            overlapY = .9;
-        }
+        const overlapLeft = playerBox.max.x - blockBox.min.x;
+        const overlapRight = blockBox.max.x - playerBox.min.x;
+        const overlapTop = playerBox.max.y - blockBox.min.y;
+        const overlapBottom = blockBox.max.y - playerBox.min.y;
 
-        const playerCenter = {
-            x: (playerBox.min.x + playerBox.max.x) / 2,
-            y: (playerBox.min.y + playerBox.max.y) / 2
-        };
+        const minOverlapX = Math.min(overlapLeft, overlapRight);
+        const minOverlapY = Math.min(overlapTop, overlapBottom);
 
-        const blockCenter = {
-            x: (blockBox.min.x + blockBox.max.x) / 2,
-            y: (blockBox.min.y + blockBox.max.y) / 2
-        };
-        // if player x is less than block center then collision was to right otherwise left
-        if (Math.abs(overlapX) < Math.abs(overlapY)) {
+        if (minOverlapX < minOverlapY) {
             return {
-                direction: playerCenter.x < blockCenter.x ? 'left' : 'right',
-                overlap: overlapX
+                direction: overlapLeft < overlapRight ? 'left' : 'right',
+                overlap: minOverlapX
             };
         } else {
             return {
-                direction: playerCenter.y < blockCenter.y ? 'top' : 'bottom',
-                overlap: overlapY
+                direction: overlapTop < overlapBottom ? 'top' : 'bottom',
+                overlap: minOverlapY
             };
         }
     }
@@ -284,7 +249,10 @@ export class Player {
         if (Math.abs(this.velocity.x) < 0.05) {
             this.velocity.x = 0;
         } else {
-            this.velocity.x *= this.friction;
+            if (this.velocity.x > 0)
+                this.velocity.x -= this.friction;
+            else
+                this.velocity.x += this.friction;
         }
     }
 
@@ -294,18 +262,18 @@ export class Player {
                 if (this.velocity.x <= this.minVelocity) {
                     this.velocity.x = this.minVelocity;
                 } else {
-                    this.velocity.x -= this.speed;
+                    this.velocity.x -= this.acceleration;
                     if (this.velocity.x > 0) {
-                        this.velocity.x -= this.speed;
+                        this.velocity.x -= this.acceleration;
                     }
                 }
             } else if (this.keys['ArrowRight'] || this.keys['d']) {
                 if (this.velocity.x >= this.maxVelocity) {
                     this.velocity.x = this.maxVelocity;
                 } else {
-                    this.velocity.x += this.speed;
+                    this.velocity.x += this.acceleration;
                     if (this.velocity.x < 0) {
-                        this.velocity.x += this.speed;
+                        this.velocity.x += this.acceleration;
                     }
                 }
             } else {
