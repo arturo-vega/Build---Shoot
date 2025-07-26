@@ -34,7 +34,7 @@ export class Player {
         this.minVelocity = -6;
         this.acceleration = 0.5;
         this.terminalVelocity = -15
-        this.friction = 0.5;
+        this.friction = 0.25;
         this.jumpSpeed = 20;
         this.gravity = -0.5;
 
@@ -281,7 +281,7 @@ export class Player {
             }
 
             if ((this.keys['ArrowUp'] || this.keys['w']) && this.onGround && !this.jumpPressed) {
-                this.velocity.y = this.jumpSpeed;
+                this.velocity.y += this.jumpSpeed;
                 this.onGround = false;
                 this.jumpPressed = true;
             }

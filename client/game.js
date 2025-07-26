@@ -120,7 +120,7 @@ export class Game {
 
     setupSocketListeners() {
         this.socket.on('playerJoined', (playerData) => {
-            console.log(`Player ${playerData.name} joined`, playerData.id);
+            console.log(`Player ${playerData.name} joined`);
             if (!this.otherPlayers.has(playerData.id)) {
                 const newPlayer = new OtherPlayer(
                     this.scene,
@@ -128,11 +128,15 @@ export class Game {
                     new THREE.Vector2().copy(playerData.velocity),
                     new THREE.Vector2().copy(playerData.position),
                     playerData.health || 100,
-                    this.listener
+                    this.listener,
+                    playerData.name
                 );
 
                 // Work in giving players a name label in the game
                 newPlayer.playerName = playerData.name;
+
+                console.log(`NEW PLAYER ID IS: ${playerData.id}`);
+                console.log(`NEW PLAYER NAME IS: ${playerData.name}`);
 
                 this.otherPlayers.set(playerData.id, newPlayer);
             }
@@ -147,8 +151,7 @@ export class Game {
                     this.positionBuffer.set(updateData.id, []);
                 }
 
-                // update the player health
-                player.health = updateData.health;
+                this.updateOtherPlayerPosition(updateData, player);
 
                 const buffer = this.positionBuffer.get(updateData.id);
                 buffer.push({
@@ -239,6 +242,18 @@ export class Game {
         });
     }
 
+    /*id: socket.id,
+                position: updateData.position,
+                velocity: updateData.velocity,
+                health: updateData.health,
+                timestamp: updateData.timestamp */
+
+    updateOtherPlayerPosition(updateData, player) {
+        player.position = updateData.position;
+        player.velocity = updateData.velocity;
+        player.health = updateData.health;
+    }
+
     sendBlockInformation() {
         if (this.world.blockAdded) {
             this.socket.emit('blockModified', {
@@ -266,6 +281,7 @@ export class Game {
             this.world.blockDamaged = false;
         }
     }
+
     sendPlayerPosition() {
         this.socket.emit('playerUpdate', {
             position: this.player.position,
@@ -399,21 +415,22 @@ export class Game {
     // updates all the other players in the otherPlayers map
     updateOtherPlayers(deltaTime) {
         for (const [playerId, player] of this.otherPlayers) {
-            const buffer = this.positionBuffer.get(playerId);
 
+            console.log(`Updating other player: ${player.name} ${player.id}`);
 
+            //const buffer = this.positionBuffer.get(playerId);
 
-            if (buffer && buffer.length >= 2) {
-                this.interpolatePlayerPosition(player, buffer, deltaTime);
-            }
+            //if (buffer && buffer.length >= 2) {
+            //    this.interpolatePlayerPosition(player, buffer, deltaTime);
+            //}
 
             // apply prediction based on velocity
-            player.position.add(player.velocity.clone().multiplyScalar(deltaTime));
-            player.player.position.copy(player.position);
+            //player.position.add(player.velocity.clone().multiplyScalar(deltaTime));
+            //player.player.position.copy(player.position);
 
 
             // update collisions
-            //player.update();
+            player.update(deltaTime);
         }
     }
 

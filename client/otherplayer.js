@@ -1,20 +1,26 @@
 import * as THREE from 'three';
 
 export class OtherPlayer {
-    constructor(scene, world, velocity, position, health, listener) {
+    constructor(scene, world, velocity, position, health, listener, name) {
         this.scene = scene;
         this.world = world;
         this.health = health;
         this.listener = listener;
         this.isDead = false;
-        this.size = {x: 0.75, y: 1.75};
-        this.maxVelocity = 0.3;
-        this.minVelocity = -0.3;
-        this.terminalVelocity = -1.2
-        this.friction = 0.2;
-        this.jumpSpeed = .3;
-        this.gravity = -0.01;
-        this.speed = 0.01;
+        this.size = { x: 0.75, y: 1.75 };
+
+
+        this.maxVelocity = 6;
+        this.minVelocity = -6;
+        this.terminalVelocity = -15
+        this.friction = 0.25;
+        this.jumpSpeed = 20;
+        this.gravity = -0.5;
+        this.acceleration = 0.5;
+
+        this.health = 100;
+
+        this.name = name;
 
         //this.id = id
         this.velocity = velocity;
@@ -24,11 +30,11 @@ export class OtherPlayer {
         const geometry = new THREE.BoxGeometry(this.size.x, this.size.y, 0.25);
         const material = new THREE.MeshBasicMaterial({ color: 0x00ffaa });
         this.player = new THREE.Mesh(geometry, material);
-        this.player.position.set(this.position.x,this.position.y,0);
+        this.player.position.set(this.position.x, this.position.y, 0);
 
         // sounds for using weapons, player sounds, etc.
-        const soundPaths = {shot: './sounds/shot.ogg'};
-        this.sounds = {shot: new THREE.PositionalAudio(this.listener)};
+        const soundPaths = { shot: './sounds/shot.ogg' };
+        this.sounds = { shot: new THREE.PositionalAudio(this.listener) };
 
         Object.values(this.sounds).forEach(sound => {
             this.player.add(sound);
@@ -39,7 +45,7 @@ export class OtherPlayer {
         // player bounding box
         this.playerBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
         this.updateBoundingBox();
-        
+
         scene.add(this.player);
     }
 
@@ -92,7 +98,7 @@ export class OtherPlayer {
     updateBoundingBox() {
         this.playerBB.setFromObject(this.player);
     }
-    
+
     applyGravity() {
         if (!this.onGround) {
             if (this.velocity.y < this.terminalVelocity) {
@@ -103,47 +109,57 @@ export class OtherPlayer {
         }
     }
 
-    update() {
+    update(deltaTime) {
+        this.checkGroundStatus();
         this.applyGravity();
 
-        const nextPosition = {
-            x: this.position.x,
-            y: this.position.y
-        };
+        this.moveHorizontally(deltaTime);
+        this.moveVertically(deltaTime);
 
-        nextPosition.x += this.velocity.x;
-        nextPosition.y += this.velocity.y;
-
-        const collision = this.checkCollisions(nextPosition);
-
-        // horizontal movement handling
-        if (!collision.cancelHorizontal) {
-            this.position.x = nextPosition.x;
-        } else {
-            this.velocity.x = 0;
-        }
-
-        if (!collision.cancelVertical) {
-            this.position.y = nextPosition.y;
-        } else {
-            this.velocity.y = 0;
-            if (collision.onGround) {
-                this.onGround = true;
-                this.position.y = nextPosition.y;
-            }
-        }
-
-        if (!collision.onGround) {
-            this.onGround = false;
-        }
-        
         this.player.position.set(this.position.x, this.position.y, 0);
         this.updateBoundingBox();
     }
 
-    checkCollisions(nextPosition) {
-        const originalPosition = this.player.position.clone();
+    checkGroundStatus() {
+        const groundCheckDistance = 0.01;
+        const testPosition = {
+            x: this.position.x,
+            y: this.position.y - groundCheckDistance
+        };
 
+        this.onGround = this.hasCollisionAt(testPosition);
+    }
+
+    moveHorizontally(deltaTime) {
+        if (Math.abs(this.velocity.x) < 0.01) return;
+
+        const nextX = this.position.x + this.velocity.x * deltaTime;
+        const testPosition = { x: nextX, y: this.position.y };
+
+        if (!this.hasCollisionAt(testPosition)) {
+            this.position.x = nextX;
+        } else {
+            this.velocity.x = 0;
+            // maybe do precise positioning function
+        }
+    }
+
+    moveVertically(deltaTime) {
+        if (Math.abs(this.velocity.y) < 0.01) return;
+
+        const nextY = this.position.y + this.velocity.y * deltaTime;
+        const testPosition = { x: this.position.x, y: nextY };
+
+        if (!this.hasCollisionAt(testPosition)) {
+            this.position.y = nextY;
+            this.onGround = false;
+        } else {
+            this.velocity.y = 0;
+        }
+    }
+
+    hasCollisionAt(nextPosition) {
+        const originalPosition = this.player.position.clone();
         this.player.position.set(nextPosition.x, nextPosition.y, 0);
         this.updateBoundingBox();
 
@@ -154,43 +170,19 @@ export class OtherPlayer {
             Math.floor(nextPosition.y + 2)
         );
 
-        let collisionResponse = {
-            hasCollision: false,
-            cancelHorizontal: false,
-            cancelVertical: false,
-            onGround: false
-        };
-
+        let hasCollision = false;
         for (let block of nearbyBlocks) {
             if (this.playerBB.intersectsBox(block.boundingBox)) {
-                const collision = this.getCollisionDirection(this.playerBB, block.boundingBox);
-
-                if (collision.direction === 'left') {
-                    collisionResponse.cancelHorizontal = true;
-                    nextPosition.x -= collision.overlap;
-                } else if (collision.direction === 'right') {
-                    collisionResponse.cancelHorizontal = true;
-                    nextPosition.x += collision.overlap;
-                } else if (collision.direction === 'top') {
-                    collisionResponse.cancelVertical = true;
-                    nextPosition.y -= collision.overlap;
-                } else if (collision.direction === 'bottom') {
-                    collisionResponse.cancelVertical = true;
-                    nextPosition.y += collision.overlap;
-                    collisionResponse.onGround = true;
-                }
-
-                collisionResponse.hasCollision = true;
-
-                // immediately updates position and bounding box after resolving collision
-                this.player.position.set(nextPosition.x, nextPosition.y, 0);
-                this.updateBoundingBox();
+                hasCollision = true;
+                break;
             }
         }
+
         // reset position
         this.player.position.copy(originalPosition);
-                
-        return collisionResponse;
+        this.updateBoundingBox();
+
+        return hasCollision;
     }
 
     damage(rayDirection, amount) {
@@ -204,35 +196,24 @@ export class OtherPlayer {
     }
 
     getCollisionDirection(playerBox, blockBox) {
-        let overlapX = Math.min(playerBox.max.x - blockBox.min.x, blockBox.max.x - playerBox.min.x);
-        let overlapY = Math.min(playerBox.max.y - blockBox.min.y, blockBox.max.y - playerBox.min.y);
 
-        if (overlapX > 1) {
-            overlapX = .9;
-        }
-        if (overlapY > 1) {
-            overlapY = .9;
-        }
+        const overlapLeft = playerBox.max.x - blockBox.min.x;
+        const overlapRight = blockBox.max.x - playerBox.min.x;
+        const overlapTop = playerBox.max.y - blockBox.min.y;
+        const overlapBottom = blockBox.max.y - playerBox.min.y;
 
-        const playerCenter = {
-            x: (playerBox.min.x + playerBox.max.x) / 2,
-            y: (playerBox.min.y + playerBox.max.y) / 2
-        };
+        const minOverlapX = Math.min(overlapLeft, overlapRight);
+        const minOverlapY = Math.min(overlapTop, overlapBottom);
 
-        const blockCenter = {
-            x: (blockBox.min.x + blockBox.max.x) / 2,
-            y: (blockBox.min.y + blockBox.max.y) /2
-        };
-        // if player x is less than block center then collision was to right otherwise left
-        if (Math.abs(overlapX) < Math.abs(overlapY)) {
+        if (minOverlapX < minOverlapY) {
             return {
-                direction: playerCenter.x < blockCenter.x ? 'left' : 'right',
-                overlap: overlapX
+                direction: overlapLeft < overlapRight ? 'left' : 'right',
+                overlap: minOverlapX
             };
         } else {
             return {
-                direction: playerCenter.y < blockCenter.y ? 'top' : 'bottom',
-                overlap: overlapY
+                direction: overlapTop < overlapBottom ? 'top' : 'bottom',
+                overlap: minOverlapY
             };
         }
     }
