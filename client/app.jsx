@@ -12,7 +12,7 @@ function App() {
     const [gameFPS, setCurrentFPS] = useState(0);
 
     // 'menu', 'connecting', 'playing'
-    const [gameState, setGameState] = useState('menu');
+    const [gameState, setGameState] = useState('');
     const [socket, setSocket] = useState(null);
     const [serverUrl, setServerUrl] = useState('http://localhost:3000');
     const [playerName, setPlayerName] = useState('');
@@ -23,12 +23,11 @@ function App() {
         const updateInterval = setInterval(() => {
             if (window.gameInstance && window.gameInstance.player) {
                 setPlayerHealth(window.gameInstance.player.health);
-
                 setCurrentFPS(window.gameInstance.FPS);
-                setCurrentVelocity(window.gameInstance.player.velocity);
 
                 const weapon = window.gameInstance.player.itemNames[window.gameInstance.player.currentItemIndex];
                 setCurrentWeapon(weapon);
+
             }
         }, 100); // update UI 10 times per second
 
@@ -118,7 +117,7 @@ function App() {
         setGameState('playing');
 
         try {
-            const game = new Game(socket, playerName);
+            const game = await new Game(socket, playerName);
             window.gameInstance = game;
             //game.animate();
         } catch (error) {

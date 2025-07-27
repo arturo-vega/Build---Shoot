@@ -380,11 +380,6 @@ export class Game {
             this.frameCount = 0;
         }
 
-
-        if (deltaTime > 0.05) {
-            console.log('Unusual deltaTime:', deltaTime);
-        }
-
         this.player.update(deltaTime);
         this.world.update();
 
