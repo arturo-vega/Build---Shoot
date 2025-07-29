@@ -1,4 +1,5 @@
 import { World } from './world.js';
+import { GameState } from './gamestate.js';
 
 export class GameRoom {
     constructor(id, creatorName, maxPlayers = 8) {
@@ -7,6 +8,7 @@ export class GameRoom {
         this.maxPlayers = maxPlayers;
         this.players = new Map();
         this.world = new World();
+        this.gameState = new GameState();
         this.createdAt = Date.now();
         this.lastActivity = Date.now();
     }

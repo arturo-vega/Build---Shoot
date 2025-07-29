@@ -1,14 +1,24 @@
 import * as THREE from 'three';
+import { GLTFLoader } from '../node_modules/three/examples/jsm/loaders/GLTFLoader';
 import { OtherPlayer } from './otherplayer.js';
 import { Player } from './player.js';
 import { Projectiles } from './projectiles.js';
 import { World } from './world.js';
+import { ModelLoader } from './modelloader.js';
 
 export class Game {
     constructor(socket, playerName) {
         this.socket = socket;
-        this.otherPlayers = new Map();
         this.playerName = playerName;
+        this.playerTeam = 'blue'; // change this later
+
+        this.otherPlayers = new Map();
+        this.gameModels = new Map();
+
+        this.modelList = {
+            blueRobot: './models/bluerobot.gltf',
+            redRobot: './models/redrobot.gltf'
+        };
 
         // using this to calculate FPS
         this.frameCount = 0;
@@ -35,87 +45,111 @@ export class Game {
         }
         this.renderer.setSize(this.windowWidth, this.windowHeight);
 
+        this.initializeGame();
+    }
+
+    async initializeGame() {
+        this.world = await this.loadWorld();
+        let model = await this.loadModelPlayer();
+        this.player = await this.loadPlayer(model);
+        // creates a class to handle all projectiles in the world
+        this.projectiles = new Projectiles(this.scene);
+
+        this.scene.add(this.camera);
+
+        // sun light
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        directionalLight.position.set(-1, 1, 1);
+        this.scene.add(directionalLight);
+
+        const light = new THREE.AmbientLight(0x4A6A8C); // soft white light
+        this.scene.add(light);
+
+        this.loadSkyBox();
+
+        // time stamp for interpolation
+        this.lastUpdateTime = performance.now();
+
+        // for communication with server
+        this.updateRate = 15; // milliseconds
+        this.lastUpdateSent = 0;
+
+        // buffer for interpolation
+        this.positionBuffer = new Map();
+
+        this.setupSocketListeners();
+
+        this.animate();
+        //this.update();
+    }
+
+    loadWorld() {
         return new Promise((resolve, reject) => {
-            // Store the resolve and reject functions as instance methods
-            this.resolveWorldLoad = resolve;
-            this.rejectWorldLoad = reject;
-
-            // Track world loading state
-            this.worldLoaded = false;
-
-            // Listen for initial world state
             this.socket.on('initialWorldState', (worldState) => {
                 try {
                     let worldMap = new Map(JSON.parse(worldState));
-
-                    this.world = new World(this.scene, worldMap, this.listener);
+                    let loadedWorld = new World(this.scene, worldMap, this.listener);
 
                     console.log(`World loaded ${worldMap.size} blocks.`);
-                    console.log("About to load player");
 
-                    // Create player after world is loaded
-                    const playerStartPosition = new THREE.Vector2(10, 10);
-
-                    this.player = new Player(
-                        this.scene,
-                        this.world,
-                        this.camera,
-                        playerStartPosition,
-                        this,
-                        this.listener,
-                        this.playerName
-
-                    );
-
-                    // creates a class to handle all projectiles in the world
-                    this.projectiles = new Projectiles(this.scene);
-
-                    this.scene.add(this.camera);
-
-                    // sun light
-                    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
-                    directionalLight.position.set(-1, 1, 1);
-                    this.scene.add(directionalLight);
-
-                    const light = new THREE.AmbientLight(0x4A6A8C); // soft white light
-                    this.scene.add(light);
-
-                    this.loadSkyBox();
-
-                    // time stamp for interpolation
-                    this.lastUpdateTime = performance.now();
-
-                    // for communication with server
-                    this.updateRate = 15; // milliseconds
-                    this.lastUpdateSent = 0;
-
-                    // buffer for interpolation
-                    this.positionBuffer = new Map();
-
-                    this.setupSocketListeners();
-
-                    this.animate();
-                    //this.update();
-
-                    // Mark world as loaded
-                    this.worldLoaded = true;
-
-                    // Resolve the promise with the game instance
-                    this.resolveWorldLoad(this);
+                    resolve(loadedWorld)
                 } catch (error) {
-                    // Reject if world creation fails
-                    this.rejectWorldLoad(error);
+                    console.error("Failed to load world:", error);
+                    reject(error);
                 }
             });
-
-            // Set up timeout for world loading
-            setTimeout(() => {
-                if (!this.worldLoaded) {
-                    this.rejectWorldLoad(new Error("Failed to load world within 5 seconds"));
-                }
-            }, 5000);
         });
+    }
 
+    loadModelPlayer() {
+        return new Promise((resolve, reject) => {
+            let playerModel = new THREE.Object3D();
+            const gltfLoader = new GLTFLoader();
+            try {
+                if (this.playerTeam === 'blue') {
+                    gltfLoader.load(this.modelList.blueRobot, (model) => {
+                        playerModel = model.scene;
+                        playerModel.scale.set(0.5, 0.5, 1);
+                        resolve(playerModel);
+                    });
+                } else {
+                    gltfLoader.load(this.modelList.redRobot, (model) => {
+                        playerModel = model.scene;
+                        resolve(playerModel);
+                    });
+                }
+            } catch (error) {
+                console.error("Failed to load model:", model);
+                reject(error);
+            }
+
+        });
+    }
+
+    loadPlayer(model) {
+        return new Promise((resolve, reject) => {
+            try {
+                console.log("About to load player");
+
+                const playerStartPosition = new THREE.Vector2(10, 10);
+                const player = new Player(
+                    this.scene,
+                    this.world,
+                    this.camera,
+                    playerStartPosition,
+                    this,
+                    this.listener,
+                    this.playerName,
+                    this.playerTeam,
+                    model
+                );
+
+                resolve(player);
+            } catch (error) {
+                console.error("Failed to load player", error);
+                reject(error)
+            }
+        });
     }
 
     setupSocketListeners() {
@@ -362,7 +396,6 @@ export class Game {
 
     animate() {
         requestAnimationFrame(() => this.animate());
-
         this.update();
         this.render();
     }
@@ -490,5 +523,39 @@ export class Game {
             envMap: textureCube
         });
 
+    }
+
+    cleanup() {
+        if (this.renderer) {
+            this.renderer.dispose();
+        }
+
+        this.scene.traverse((object) => {
+            if (object.geometry) {
+                object.geometry.dispose();
+            }
+            if (object.material) {
+                if (Array.isArray(object.material)) {
+                    object.material.forEach(material => material.dispose());
+                } else {
+                    object.material.dispose();
+                }
+            }
+        });
+
+        this.socket.off('initialWorldState');
+        this.socket.off('playerJoined');
+        this.socket.off('playerMoved');
+        this.socket.off('playerLeft');
+        this.socket.off('playerDamaged');
+        this.socket.off('otherPlayerFired');
+        this.socket.off('otherPlayerFiredDamagedBlock');
+        this.socket.off('mapUpdated');
+        this.socket.off('roomJoined');
+        this.socket.off('roomLeft');
+
+        this.otherPlayers.clear();
+
+        console.log('Game cleaned up successfully');
     }
 }

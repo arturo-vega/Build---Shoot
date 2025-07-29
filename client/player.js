@@ -1,8 +1,12 @@
 import * as THREE from 'three';
+import { GLTFLoader } from '../node_modules/three/examples/jsm/loaders/GLTFLoader';
 import { Item } from '/item.js';
+import { TextGeometry } from '../node_modules/three/examples/jsm/geometries/TextGeometry.js';
+import { FontLoader } from '../node_modules/three/examples/jsm/loaders/FontLoader.js';
+import { ModelLoader } from './modelloader.js';
 
 export class Player {
-    constructor(scene, world, camera, startPosition, game, listener, playerName) {
+    constructor(scene, world, camera, startPosition, game, listener, playerName, playerTeam, model) {
         this.game = game;
         this.world = world;
         this.camera = camera;
@@ -16,6 +20,8 @@ export class Player {
         this.previousMousePosition = { x: 10, y: 10 };
         this.currentMousePosition = { x: 0, y: 0 };
         this.playerName = playerName;
+        this.playerTeam = playerTeam;
+        this.model = model;
 
         // will use this for items
         this.wandCharge = 100;
@@ -37,6 +43,9 @@ export class Player {
         this.friction = 0.25;
         this.jumpSpeed = 20;
         this.gravity = -0.5;
+
+        this.blueTeamModel = './models/bluerobot.gltf';
+        this.redTeamModel = './models/redrobot.gltf';
 
         this.mouseRaycaster = new THREE.Raycaster();
         this.mouse = new THREE.Vector2();
@@ -62,8 +71,10 @@ export class Player {
         // player cube
         const geometry = new THREE.BoxGeometry(this.size.x, this.size.y, 0.25);
         const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-        this.player = new THREE.Mesh(geometry, material);
+        this.player = this.model;
+        console.log(this.model);
         this.player.position.set(this.position.x, this.position.y, 0);
+        //this.model.position.set(this.player.position.x, this.player.position.y, 0);
 
         // player bounding box
         this.playerBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
@@ -77,9 +88,55 @@ export class Player {
 
         this.ghostBlockOn = true;
 
-        scene.add(this.player);
+        scene.add(this.model);
         this.setupControls();
 
+    }
+
+    createPlayerModel(playerName) {
+
+        if (this.playerTeam === 'blue') {
+            const gltfLoader = new GLTFLoader();
+            gltfLoader.load(this.blueTeamModel, (model) => {
+                console.log(model);
+                return model;
+            });
+        } else {
+            const gltfLoader = new GLTFLoader();
+            gltfLoader.load(this.redTeamModel, (model) => {
+                return model;
+            });
+        }
+
+        //const geometry = new THREE.BoxGeometry(this.size.x, this.size.y, 0.25);
+        //const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        //const playerModel = new THREE.Mesh(geometry, material);
+
+        // will work on this later
+        //if (playerName) {
+        //    const nameLabel = this.createNameLabel(playerName);
+        //    nameLabel.position.set(0, 2, 0);
+        //    playerMesh.add(nameLabel);
+        //}
+    }
+
+    createNameLabel(name) {
+        const loader = new FontLoader();
+
+        loader.load('../node_modules/three/examples/fonts/helvetiker_regular.typeface.json', (droidFont) => {
+            const textGeometry = new TextGeometry(name, {
+                height: 2,
+                size: 10,
+                font: droidFont,
+            });
+
+            const textMaterial = new THREE.MeshNormalMaterial();
+            const mesh = new THREE.Mesh(textGeometry, textMaterial);
+            mesh.castShadow = false;
+            mesh.receiveShadow = false;
+
+            return mesh;
+        });
     }
 
     getCurrentItem() {

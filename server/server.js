@@ -77,7 +77,7 @@ io.on('connection', (socket) => {
 
     socket.on('createRoom', (data) => {
         const roomId = generateRoomId();
-        const room = new GameRoom(roomId, socket.playerName /*|| data.playerName*/);
+        const room = new GameRoom(roomId, socket.playerName || data.playerName);
 
         rooms.set(roomId, room);
 

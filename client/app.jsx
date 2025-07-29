@@ -117,7 +117,7 @@ function App() {
         setGameState('playing');
 
         try {
-            const game = await new Game(socket, playerName);
+            const game = new Game(socket, playerName);
             window.gameInstance = game;
             //game.animate();
         } catch (error) {
