@@ -16,7 +16,7 @@ export class Game {
         this.gameModels = new Map();
 
         this.modelList = {
-            blueRobot: './models/bluerobot.gltf',
+            blueRobot: './models/bluerobot.glb',
             redRobot: './models/redrobot.gltf'
         };
 
@@ -108,13 +108,21 @@ export class Game {
             try {
                 if (this.playerTeam === 'blue') {
                     gltfLoader.load(this.modelList.blueRobot, (model) => {
-                        playerModel = model.scene;
-                        playerModel.scale.set(0.5, 0.5, 1);
-                        resolve(playerModel);
+                        //playerModel = model;
+                        model.scene.scale.set(0.5, 0.5, 0.5);
+
+                        console.log("player model");
+                        console.log(model.animations);
+                        console.log(model.animations);
+                        resolve(model);
                     });
                 } else {
                     gltfLoader.load(this.modelList.redRobot, (model) => {
                         playerModel = model.scene;
+                        playerModel.scale.set(0.5, 0.5, 0.5);
+
+                        console.log("player model");
+                        console.log(playerModel.animations);
                         resolve(playerModel);
                     });
                 }

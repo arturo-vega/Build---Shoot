@@ -23,6 +23,9 @@ export class Player {
         this.playerTeam = playerTeam;
         this.model = model;
 
+        this.playerLookingRight = true;
+        this.playerLookingLeft = false;
+
         // will use this for items
         this.wandCharge = 100;
         this.shovelCharge = 50;
@@ -74,7 +77,11 @@ export class Player {
         this.player = this.model;
         console.log(this.model);
         this.player.position.set(this.position.x, this.position.y, 0);
+        this.player.rotateY(Math.PI / 2);
         //this.model.position.set(this.player.position.x, this.player.position.y, 0);
+
+        this.mixer = new THREE.AnimationMixer(this.player);
+        this.clips = this.player.animations;
 
         // player bounding box
         this.playerBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
@@ -202,10 +209,40 @@ export class Player {
 
         this.moveHorizontally(deltaTime);
         this.moveVertically(deltaTime);
+        this.setLookDirection();
+        this.mixer.update(deltaTime);
+        this.animate();
 
         this.player.position.set(this.position.x, this.position.y, 0);
         this.updateBoundingBox();
         this.updateGhost();
+    }
+
+    setLookDirection() {
+        if (this.mouse.x > 0 && !this.playerLookingRight) {
+            this.playerLookingRight = true;
+            this.playerLookingLeft = false;
+            this.player.rotateY(Math.PI);
+        } else if (this.mouse.x < 0 && !this.playerLookingLeft) {
+            this.playerLookingLeft = true;
+            this.playerLookingRight = false;
+            this.player.rotateY(Math.PI);
+        }
+    }
+
+    animate() {
+        const walkClip = THREE.AnimationClip.findByName(this.clips, 'Walk');
+        const walking = this.mixer.clipAction(walkClip);
+
+        const idleClip = THREE.AnimationClip.findByName(this.clips, 'Idle');
+        const idle = this.mixer.clipAction(walkClip);
+
+        if (Math.abs(this.velocity.x) > 0.05) {
+            walking.play();
+            console.log(walking);
+        } else {
+            //idle.play();
+        }
     }
 
     checkGroundStatus() {

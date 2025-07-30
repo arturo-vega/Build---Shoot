@@ -18,17 +18,17 @@
 			"name":"head",
 			"rotation":[
 				3.005971294101073e-08,
-				-8.881784197001252e-15,
-				2.6054024067448953e-15,
+				-3.552713678800501e-15,
+				2.605402618503132e-15,
 				1
 			],
 			"scale":[
 				1,
-				1.000000238418579,
+				1.0000001192092896,
 				1
 			],
 			"translation":[
-				-6.551358551405874e-23,
+				-6.738823456922596e-23,
 				0.6236159801483154,
 				4.3963601648044914e-09
 			]
@@ -1828,6 +1828,25 @@
 					"output":151
 				}
 			]
+		},
+		{
+			"channels":[
+				{
+					"sampler":0,
+					"target":{
+						"node":4,
+						"path":"rotation"
+					}
+				}
+			],
+			"name":"UpperArm",
+			"samplers":[
+				{
+					"input":152,
+					"interpolation":"LINEAR",
+					"output":153
+				}
+			]
 		}
 	],
 	"materials":[
@@ -2028,7 +2047,7 @@
 	],
 	"skins":[
 		{
-			"inverseBindMatrices":152,
+			"inverseBindMatrices":154,
 			"joints":[
 				28,
 				23,
@@ -3111,6 +3130,24 @@
 		{
 			"bufferView":152,
 			"componentType":5126,
+			"count":50,
+			"max":[
+				2.0833333333333335
+			],
+			"min":[
+				0.041666666666666664
+			],
+			"type":"SCALAR"
+		},
+		{
+			"bufferView":153,
+			"componentType":5126,
+			"count":50,
+			"type":"VEC4"
+		},
+		{
+			"bufferView":154,
+			"componentType":5126,
 			"count":17,
 			"type":"MAT4"
 		}
@@ -3924,8 +3961,18 @@
 		},
 		{
 			"buffer":0,
-			"byteLength":1088,
+			"byteLength":200,
 			"byteOffset":125348
+		},
+		{
+			"buffer":0,
+			"byteLength":800,
+			"byteOffset":125548
+		},
+		{
+			"buffer":0,
+			"byteLength":1088,
+			"byteOffset":126348
 		}
 	],
 	"samplers":[
@@ -3936,7 +3983,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":126436,
+			"byteLength":127436,
 			"uri":"bluerobot.bin"
 		}
 	]
