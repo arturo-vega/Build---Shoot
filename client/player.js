@@ -15,7 +15,7 @@ export class Player {
         this.jumpPressed = false;
         this.health = 100;
         this.velocity = { x: 0, y: 0 };
-        this.size = { x: 0.75, y: 1.75 };
+        this.size = { x: 0.75, y: 2, z: 0.25 };
         this.position = startPosition;
         this.previousMousePosition = { x: 10, y: 10 };
         this.currentMousePosition = { x: 0, y: 0 };
@@ -25,6 +25,7 @@ export class Player {
 
         this.playerLookingRight = true;
         this.playerLookingLeft = false;
+        this.lookDirection = 'right';
 
         // will use this for items
         this.wandCharge = 100;
@@ -71,20 +72,33 @@ export class Player {
         const soundPaths = { shot: './sounds/shot.ogg' };
         this.sounds = { shot: new THREE.PositionalAudio(this.listener) };
 
-        // player cube
-        const geometry = new THREE.BoxGeometry(this.size.x, this.size.y, 0.25);
-        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        // player model
         this.player = this.model;
-        console.log(this.model);
-        this.player.position.set(this.position.x, this.position.y, 0);
+        this.player.position.set(this.position.x, this.position.y + 5, 0);
         this.player.rotateY(Math.PI / 2);
         //this.model.position.set(this.player.position.x, this.player.position.y, 0);
 
+
+        // animation stuff
         this.mixer = new THREE.AnimationMixer(this.player);
         this.clips = this.player.animations;
 
+        const walkClip = THREE.AnimationClip.findByName(this.clips, 'Walk');
+        const trimmedWalk = THREE.AnimationUtils.subclip(walkClip, 'trimmedWalk', 0, 62);
+        this.walkingAnimation = this.mixer.clipAction(trimmedWalk);
+
+        const idleClip = THREE.AnimationClip.findByName(this.clips, 'Idle');
+        this.idleAnimation = this.mixer.clipAction(idleClip);
+
         // player bounding box
-        this.playerBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
+        this.playerBB = new THREE.Box3();
+        this.playerBB.setFromObject(this.player);
+        this.initialBBSize = new THREE.Vector3();
+        this.playerBB.getSize(this.initialBBSize);
+
+        this.boxHelper = new THREE.Box3Helper(this.playerBB, 0xffff00);
+        scene.add(this.boxHelper);
+
         this.updateBoundingBox();
 
         Object.values(this.sounds).forEach(sound => {
@@ -97,6 +111,7 @@ export class Player {
 
         scene.add(this.model);
         this.setupControls();
+
 
     }
 
@@ -189,7 +204,19 @@ export class Player {
     }
 
     updateBoundingBox() {
-        this.playerBB.setFromObject(this.player);
+        const playerPosition = this.player.position.clone();
+        // bounding box spawns with its origin halfway inside the player without this
+        playerPosition.y -= 1;
+
+        this.playerBB.setFromCenterAndSize(playerPosition, this.initialBBSize);
+
+        // Update the box helper
+        this.boxHelper.box.copy(this.playerBB);
+
+        //console.log(`BoundingBox width: ${this.playerBB.max.x - this.playerBB.min.x} height: ${this.playerBB.max.y - this.playerBB.min.y}`);
+        //console.log(`BBminx: ${this.playerBB.min.x} BBmaxX: ${this.playerBB.max.x} BBminy: ${this.playerBB.min.y} BBmaxy: ${this.playerBB.max.y}`);
+        //console.log(`Position.x = ${this.position.x} This position.y = ${this.position.y} BoundingBox x = ${this.playerBB.min.x} y = ${this.playerBB.min.y}`);
+        //console.log`Position x:${this.position.x} y:${this.position.y} - bb.min.x${this.playerBB.min.x} bb.min.y${this.playerBB.min.y} - bb.max.x${this.playerBB.max.x} bb.max.y${this.playerBB.max.y}`
     }
 
     applyGravity() {
@@ -203,6 +230,7 @@ export class Player {
     }
 
     update(deltaTime) {
+        //this.updateBoundingBox();
         this.handleInput();
         this.checkGroundStatus();
         this.applyGravity();
@@ -210,6 +238,7 @@ export class Player {
         this.moveHorizontally(deltaTime);
         this.moveVertically(deltaTime);
         this.setLookDirection();
+        this.setWalkingDirection();
         this.mixer.update(deltaTime);
         this.animate();
 
@@ -218,30 +247,39 @@ export class Player {
         this.updateGhost();
     }
 
+    setWalkingDirection() {
+        if (this.playerLookingRight && this.velocity.x < -0.05) {
+            this.mixer.timeScale = -1.5;
+        }
+        else if (this.playerLookingLeft && this.velocity.x > 0.05) {
+            this.mixer.timeScale = -1.5;
+        }
+        else {
+            this.mixer.timeScale = 1.5;
+        }
+    }
+
     setLookDirection() {
         if (this.mouse.x > 0 && !this.playerLookingRight) {
             this.playerLookingRight = true;
             this.playerLookingLeft = false;
+            this.lookDirection = 'right';
             this.player.rotateY(Math.PI);
         } else if (this.mouse.x < 0 && !this.playerLookingLeft) {
             this.playerLookingLeft = true;
             this.playerLookingRight = false;
+            this.lookDirection = 'left';
             this.player.rotateY(Math.PI);
         }
     }
 
     animate() {
-        const walkClip = THREE.AnimationClip.findByName(this.clips, 'Walk');
-        const walking = this.mixer.clipAction(walkClip);
-
-        const idleClip = THREE.AnimationClip.findByName(this.clips, 'Idle');
-        const idle = this.mixer.clipAction(walkClip);
-
         if (Math.abs(this.velocity.x) > 0.05) {
-            walking.play();
-            console.log(walking);
+            this.idleAnimation.stop();
+            this.walkingAnimation.play();
         } else {
-            //idle.play();
+            this.walkingAnimation.stop();
+            this.idleAnimation.play();
         }
     }
 
@@ -308,29 +346,6 @@ export class Player {
         this.updateBoundingBox();
 
         return hasCollision;
-    }
-
-    getCollisionDirection(playerBox, blockBox) {
-
-        const overlapLeft = playerBox.max.x - blockBox.min.x;
-        const overlapRight = blockBox.max.x - playerBox.min.x;
-        const overlapTop = playerBox.max.y - blockBox.min.y;
-        const overlapBottom = blockBox.max.y - playerBox.min.y;
-
-        const minOverlapX = Math.min(overlapLeft, overlapRight);
-        const minOverlapY = Math.min(overlapTop, overlapBottom);
-
-        if (minOverlapX < minOverlapY) {
-            return {
-                direction: overlapLeft < overlapRight ? 'left' : 'right',
-                overlap: minOverlapX
-            };
-        } else {
-            return {
-                direction: overlapTop < overlapBottom ? 'top' : 'bottom',
-                overlap: minOverlapY
-            };
-        }
     }
 
     switchItem(index) {

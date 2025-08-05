@@ -82,10 +82,12 @@ io.on('connection', (socket) => {
         rooms.set(roomId, room);
 
         room.addPlayer(socket.id, {
-            name: socket.playerName || data.playerName,
+            playerName: socket.playerName || data.playerName,
             position: { x: 0, y: 0, z: 0 },
             velocity: { x: 0, y: 0, z: 0 },
-            health: 100
+            health: 100,
+            id: socket.id,
+            playerTeam: socket.playerTeam || 'red'
         });
 
         socket.join(roomId);
@@ -97,6 +99,11 @@ io.on('connection', (socket) => {
             roomId: roomId,
             room: room.toJSON()
         });
+
+        // even though there will never be any players on the start of a room this needs to be
+        // sent to initialize the game on the client
+        let transitPlayers = JSON.stringify(Array.from(room.players));
+        socket.emit('initialPlayerStates', transitPlayers);
 
         let transitBlocks = JSON.stringify(Array.from(room.world.blocks));
         socket.emit('initialWorldState', transitBlocks);
@@ -120,10 +127,12 @@ io.on('connection', (socket) => {
         }
 
         room.addPlayer(socket.id, {
-            name: socket.playerName,
+            playerName: socket.playerName,
             position: { x: 0, y: 0, z: 0 },
             velocity: { x: 0, y: 0, z: 0 },
-            health: 100
+            health: 100,
+            id: socket.id,
+            playerTeam: socket.playerTeam || 'red'
         });
 
         if (room.roomHasPlayer(socket.id)) {
@@ -137,27 +146,22 @@ io.on('connection', (socket) => {
                 room: room.toJSON()
             });
 
-            // send world state of the room
+            // send player map before adding the player than joined to it
+            let transitPlayers = JSON.stringify(Array.from(room.players));
+            socket.emit('initialPlayerStates', transitPlayers);
+
+            // send world state of the room when someone joins
             let transitBlocks = JSON.stringify(Array.from(room.world.blocks));
             socket.emit('initialWorldState', transitBlocks);
 
-            socket.to(data.roomId).emit('playerJoined', {
-                id: socket.id,
-                name: socket.playerName,
-                position: { x: 0, y: 0, z: 0 },
-                velocity: { x: 0, y: 0, z: 0 },
-                health: 100
-            });
+            console.log("Emitting player joined");
+            console.log(room.players.get(socket.id));
+            socket.to(data.roomId).emit('playerJoined', room.players.get(socket.id));
 
+            // send this player to everyone else in the
             room.players.forEach((player, id) => {
                 if (id != socket.id) {
-                    socket.emit('playerJoined', {
-                        id: id,
-                        name: player.name,
-                        position: player.position,
-                        velocity: player.velocity,
-                        health: player.health
-                    });
+                    socket.emit('playerJoined', room.players.get(socket.id));
                 }
             });
 
@@ -180,7 +184,8 @@ io.on('connection', (socket) => {
         room.updatePlayer(socket.id, {
             position: updateData.position,
             velocity: updateData.velocity,
-            health: updateData.health
+            health: updateData.health,
+            lookDirection: updateData.lookDirection
         });
 
         if (room.roomHasPlayer(socket.id)) {
@@ -190,7 +195,8 @@ io.on('connection', (socket) => {
                 position: updateData.position,
                 velocity: updateData.velocity,
                 health: updateData.health,
-                timestamp: updateData.timestamp
+                lookDirection: updateData.lookDirection,
+                timeStamp: updateData.timeStamp
             });
         }
     });

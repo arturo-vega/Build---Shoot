@@ -4,21 +4,25 @@ import { OtherPlayer } from './otherplayer.js';
 import { Player } from './player.js';
 import { Projectiles } from './projectiles.js';
 import { World } from './world.js';
-import { ModelLoader } from './modelloader.js';
 
 export class Game {
     constructor(socket, playerName) {
         this.socket = socket;
         this.playerName = playerName;
-        this.playerTeam = 'blue'; // change this later
+        this.playerTeam = 'red'; // change this later
 
         this.otherPlayers = new Map();
         this.gameModels = new Map();
 
-        this.modelList = {
+        this.playerModels = {
             blueRobot: './models/bluerobot.glb',
             redRobot: './models/redrobot.gltf'
         };
+        this.modelList = {
+
+        }
+
+        this.loadedModels = new Map();
 
         // using this to calculate FPS
         this.frameCount = 0;
@@ -49,9 +53,39 @@ export class Game {
     }
 
     async initializeGame() {
+        this.otherPlayers = await this.getOtherPlayers();
+        console.log("otherPlayers map");
+        console.log(this.otherPlayers);
+        // world needs to be loaded first so it can get the blocks transmitted when the server transmits them
         this.world = await this.loadWorld();
-        let model = await this.loadModelPlayer();
-        this.player = await this.loadPlayer(model);
+        const playerModel = await this.loadPlayerModel(this.playerTeam);
+        this.player = await this.loadPlayer(playerModel);
+
+        for (const player of this.otherPlayers) {
+            let otherPlayerModel = await this.loadPlayerModel(player[1]);
+
+            console.log("Other player model");
+            console.log(otherPlayerModel);
+            console.log("Other player object");
+            console.log(player[1]);
+
+            if (!this.otherPlayers.has(player.socketId)) {
+                const newPlayer = new OtherPlayer(
+                    this.scene,
+                    this.world,
+                    player[1].velocity,
+                    player[1].position,
+                    player[1].health || 100,
+                    this.listener,
+                    player[1].playerName,
+                    player[1].playerTeam,
+                    otherPlayerModel
+                );
+
+                this.otherPlayers.set(player[1].id, newPlayer);
+            }
+        }
+
         // creates a class to handle all projectiles in the world
         this.projectiles = new Projectiles(this.scene);
 
@@ -80,7 +114,50 @@ export class Game {
         this.setupSocketListeners();
 
         this.animate();
-        //this.update();
+    }
+
+    // this can be only used to load models that are spawned once
+    loadAllModels() {
+        return new Promise((resolve, reject) => {
+            let modelMap = new Map();
+            const gltfLoader = new GLTFLoader();
+            const modelKeys = Object.keys(this.modelList);
+            let loadedCount = 0;
+
+            for (const model of modelKeys) {
+                gltfLoader.load(this.modelList[model], (loadedModel) => {
+                    const newModel = loadedModel.scene;
+                    newModel.animations = loadedModel.animations;
+                    modelMap.set(model, newModel);
+                    loadedCount++;
+
+                    if (loadedCount === modelKeys.length) {
+                        resolve(modelMap);
+                    }
+                },
+                    undefined, // This is part of GLTFLoader async error handling
+                    (error) => {
+                        console.error(`Failed to load model: ${model}`, error);
+                        reject(error);
+                    });
+            }
+        });
+    }
+
+    getOtherPlayers() {
+        return new Promise((resolve, reject) => {
+            this.socket.on('initialPlayerStates', (playerStates) => {
+                try {
+                    let otherPlayers = new Map(JSON.parse(playerStates));
+                    // remove this instance of the player from the 'other players' map
+                    otherPlayers.delete(this.socket.id);
+                    resolve(otherPlayers);
+                } catch (error) {
+                    console.error('Failed to load players:" error');
+                    reject(error);
+                }
+            });
+        });
     }
 
     loadWorld() {
@@ -89,8 +166,6 @@ export class Game {
                 try {
                     let worldMap = new Map(JSON.parse(worldState));
                     let loadedWorld = new World(this.scene, worldMap, this.listener);
-
-                    console.log(`World loaded ${worldMap.size} blocks.`);
 
                     resolve(loadedWorld)
                 } catch (error) {
@@ -101,44 +176,44 @@ export class Game {
         });
     }
 
-    loadModelPlayer() {
+    loadPlayerModel(playerTeam) {
         return new Promise((resolve, reject) => {
             let playerModel = new THREE.Object3D();
             const gltfLoader = new GLTFLoader();
-            try {
-                if (this.playerTeam === 'blue') {
-                    gltfLoader.load(this.modelList.blueRobot, (model) => {
-                        //playerModel = model;
-                        model.scene.scale.set(0.5, 0.5, 0.5);
+            if (playerTeam === 'blue') {
+                gltfLoader.load(this.playerModels.blueRobot, (model) => {
+                    playerModel = model.scene;
+                    playerModel.animations = model.animations;
+                    model.scene.scale.set(0.5, 0.5, 0.5);
 
-                        console.log("player model");
-                        console.log(model.animations);
-                        console.log(model.animations);
-                        resolve(model);
+                    resolve(model);
+                },
+                    undefined, // This is part of GLTFLoader async error handling
+                    (error) => {
+                        console.error(`Failed to load model: ${model}`, error);
+                        reject(error);
                     });
-                } else {
-                    gltfLoader.load(this.modelList.redRobot, (model) => {
-                        playerModel = model.scene;
-                        playerModel.scale.set(0.5, 0.5, 0.5);
+            } else {
+                gltfLoader.load(this.playerModels.redRobot, (model) => {
+                    playerModel = model.scene;
+                    playerModel.animations = model.animations;
+                    playerModel.scale.set(0.5, 0.5, 0.5);
 
-                        console.log("player model");
-                        console.log(playerModel.animations);
-                        resolve(playerModel);
+                    resolve(playerModel);
+                },
+                    undefined, // This is part of GLTFLoader async error handling
+                    (error) => {
+                        console.error(`Failed to load model: ${model}`, error);
+
+                        reject(error);
                     });
-                }
-            } catch (error) {
-                console.error("Failed to load model:", model);
-                reject(error);
             }
-
         });
     }
 
     loadPlayer(model) {
         return new Promise((resolve, reject) => {
             try {
-                console.log("About to load player");
-
                 const playerStartPosition = new THREE.Vector2(10, 10);
                 const player = new Player(
                     this.scene,
@@ -160,28 +235,36 @@ export class Game {
         });
     }
 
+    async loadNewPlayer(playerData) {
+        let model = await this.loadPlayerModel(playerData.playerTeam);
+        console.log(`Player ${playerData.name} joined, model:`);
+        console.log(model);
+        console.log("Player data:")
+        console.log(playerData);
+
+        if (!this.otherPlayers.has(playerData.id)) {
+            const newPlayer = new OtherPlayer(
+                this.scene,
+                this.world,
+                new THREE.Vector2().copy(playerData.velocity),
+                new THREE.Vector2().copy(playerData.position),
+                playerData.health || 100,
+                this.listener,
+                playerData.playerName,
+                playerData.playerTeam,
+                model
+            );
+
+            this.otherPlayers.set(playerData.id, newPlayer);
+
+            console.log("Other player in map:");
+            console.log(this.otherPlayers.get(playerData.id));
+        }
+    }
+
     setupSocketListeners() {
         this.socket.on('playerJoined', (playerData) => {
-            console.log(`Player ${playerData.name} joined`);
-            if (!this.otherPlayers.has(playerData.id)) {
-                const newPlayer = new OtherPlayer(
-                    this.scene,
-                    this.world,
-                    new THREE.Vector2().copy(playerData.velocity),
-                    new THREE.Vector2().copy(playerData.position),
-                    playerData.health || 100,
-                    this.listener,
-                    playerData.name
-                );
-
-                // Work in giving players a name label in the game
-                newPlayer.playerName = playerData.name;
-
-                console.log(`NEW PLAYER ID IS: ${playerData.id}`);
-                console.log(`NEW PLAYER NAME IS: ${playerData.name}`);
-
-                this.otherPlayers.set(playerData.id, newPlayer);
-            }
+            this.loadNewPlayer(playerData);
         });
 
         // Updates player movement
@@ -288,12 +371,14 @@ export class Game {
                 position: updateData.position,
                 velocity: updateData.velocity,
                 health: updateData.health,
+                lookDirection: updateData.lookDirection;
                 timestamp: updateData.timestamp */
 
     updateOtherPlayerPosition(updateData, player) {
         player.position = updateData.position;
         player.velocity = updateData.velocity;
         player.health = updateData.health;
+        player.lookDirection = updateData.lookDirection;
     }
 
     sendBlockInformation() {
@@ -329,7 +414,8 @@ export class Game {
             position: this.player.position,
             velocity: this.player.velocity,
             health: this.player.health,
-            timestamp: performance.now()
+            lookDirection: this.player.lookDirection,
+            timeStamp: performance.now()
         });
     }
 
@@ -429,16 +515,15 @@ export class Game {
             this.sendPlayerPosition();
             this.lastUpdateSent = currentTime;
         }
-        // update players
+
         this.updateOtherPlayers(deltaTime);
+
         // update camera to follow player
-        this.camera.position.set(this.player.position.x, this.player.position.y, 7);
+        this.camera.position.set(this.player.position.x, this.player.position.y, 5);
         this.camera.lookAt(this.player.position.x, this.player.position.y, 0);
 
-        // block information goes second to calculate beam distance
         this.sendPVPInfo();
         this.sendBlockInformation();
-
         this.projectiles.update();
 
         this.lastUpdateTime = currentTime;
@@ -450,10 +535,7 @@ export class Game {
 
     // updates all the other players in the otherPlayers map
     updateOtherPlayers(deltaTime) {
-        for (const [playerId, player] of this.otherPlayers) {
-
-            console.log(`Updating other player: ${player.name} ${player.id}`);
-
+        for (const player of this.otherPlayers) {
             //const buffer = this.positionBuffer.get(playerId);
 
             //if (buffer && buffer.length >= 2) {
@@ -466,7 +548,7 @@ export class Game {
 
 
             // update collisions
-            player.update(deltaTime);
+            player[1].update(deltaTime);
         }
     }
 
@@ -500,16 +582,6 @@ export class Game {
             0.2
         );
     }
-
-    sendPlayerPosition() {
-        this.socket.emit('playerUpdate', {
-            position: this.player.position,
-            velocity: this.player.velocity,
-            health: this.player.health,
-            timestamp: performance.now()
-        });
-    }
-
 
     loadSkyBox() {
         const loader = new THREE.CubeTextureLoader();

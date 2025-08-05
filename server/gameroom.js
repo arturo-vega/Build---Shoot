@@ -26,10 +26,17 @@ export class GameRoom {
             return false;
         }
 
+        console.log("Adding player to gameRoom");
+        console.log(playerData);
+
+        console.log("Players in room");
+        console.log(this.players);
+
         this.players.set(socketId, {
             ...playerData,
             joinedAt: Date.now(),
-            lastUpdate: performance.now()
+            lastUpdate: performance.now(),
+            playerTeam: 'red'  // TEMPORARY UNTIL THE GAMESTATE IS IMPLIMENTED 
         });
 
         this.lastActivity = Date.now();
@@ -41,17 +48,6 @@ export class GameRoom {
             this.lastActivity = Date.now();
         }
         return removed;
-    }
-
-    updatePlayer(socketId, updateData) {
-        const player = this.player.get(socketId);
-        if (player) {
-            Object.assign(player, updateData);
-            player.lastUpdate = performance.now();
-            this.lastActivity = Date.now();
-            return true;
-        }
-        return false;
     }
 
     updatePlayer(socketId, updateData) {

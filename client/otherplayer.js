@@ -1,13 +1,14 @@
 import * as THREE from 'three';
 
 export class OtherPlayer {
-    constructor(scene, world, velocity, position, health, listener, name) {
+    constructor(scene, world, velocity, position, health, listener, playerName, playerTeam, model) {
         this.scene = scene;
         this.world = world;
         this.health = health;
         this.listener = listener;
         this.isDead = false;
         this.size = { x: 0.75, y: 1.75 };
+        this.model = model;
 
 
         this.maxVelocity = 6;
@@ -18,19 +19,46 @@ export class OtherPlayer {
         this.gravity = -0.5;
         this.acceleration = 0.5;
 
+        this.playerLookingRight = true;
+        this.playerLookingLeft = false;
+        this.lookDirection = 'right';
+
         this.health = 100;
 
-        this.name = name;
+        this.playerName = playerName;
+        this.playerTeam = playerTeam;
 
         //this.id = id
         this.velocity = velocity;
         this.position = position;
 
+        console.log(`Player Position: ${this.position.x}, ${this.position.y}`);
+
         // player cube
-        const geometry = new THREE.BoxGeometry(this.size.x, this.size.y, 0.25);
-        const material = new THREE.MeshBasicMaterial({ color: 0x00ffaa });
-        this.player = new THREE.Mesh(geometry, material);
-        this.player.position.set(this.position.x, this.position.y, 0);
+        this.player = this.model;
+        this.player.position.set(this.position.x, this.position.y + 5, 0);
+        this.player.rotateY(Math.PI / 2);
+        //this.model.position.set(this.player.position.x, this.player.position.y, 0);
+
+
+        // animation stuff
+        this.mixer = new THREE.AnimationMixer(this.player);
+        this.clips = this.player.animations;
+
+        const walkClip = THREE.AnimationClip.findByName(this.clips, 'Walk');
+        const trimmedWalk = THREE.AnimationUtils.subclip(walkClip, 'trimmedWalk', 0, 62);
+        this.walkingAnimation = this.mixer.clipAction(trimmedWalk);
+
+        const idleClip = THREE.AnimationClip.findByName(this.clips, 'Idle');
+        this.idleAnimation = this.mixer.clipAction(idleClip);
+
+        // player bounding box
+        this.playerBB = new THREE.Box3();
+        this.playerBB.setFromObject(this.player);
+        this.initialBBSize = new THREE.Vector3();
+        this.playerBB.getSize(this.initialBBSize);
+
+        this.updateBoundingBox();
 
         // sounds for using weapons, player sounds, etc.
         const soundPaths = { shot: './sounds/shot.ogg' };
@@ -42,11 +70,10 @@ export class OtherPlayer {
 
         this.loadSounds(soundPaths);
 
-        // player bounding box
-        this.playerBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
-        this.updateBoundingBox();
+        console.log("In the other player class");
+        console.log(this.model);
 
-        scene.add(this.player);
+        scene.add(this.model);
     }
 
     loadSounds(soundPaths) {
@@ -96,7 +123,12 @@ export class OtherPlayer {
     }
 
     updateBoundingBox() {
-        this.playerBB.setFromObject(this.player);
+        const playerPosition = this.player.position.clone();
+        // bounding box spawns with its origin halfway inside the player without this
+        playerPosition.y -= 1;
+
+        this.playerBB.setFromCenterAndSize(playerPosition, this.initialBBSize);
+
     }
 
     applyGravity() {
@@ -112,12 +144,63 @@ export class OtherPlayer {
     update(deltaTime) {
         this.checkGroundStatus();
         this.applyGravity();
+        this.applyFriction();
 
         this.moveHorizontally(deltaTime);
         this.moveVertically(deltaTime);
+        this.setLookDirection();
+        this.setWalkingDirection();
+        this.mixer.update(deltaTime);
+        this.animate();
 
         this.player.position.set(this.position.x, this.position.y, 0);
         this.updateBoundingBox();
+    }
+
+    setWalkingDirection() {
+        if (this.playerLookingRight && this.velocity.x < -0.05) {
+            this.mixer.timeScale = -1.5;
+        }
+        else if (this.playerLookingLeft && this.velocity.x > 0.05) {
+            this.mixer.timeScale = -1.5;
+        }
+        else {
+            this.mixer.timeScale = 1.5;
+        }
+    }
+
+    applyFriction() {
+        if (Math.abs(this.velocity.x) < 0.05) {
+            this.velocity.x = 0;
+        } else {
+            if (this.velocity.x > 0)
+                this.velocity.x -= this.friction;
+            else
+                this.velocity.x += this.friction;
+        }
+    }
+
+    setLookDirection() {
+        //console.log(`Otherplayer look direction: ${this.lookDirection} Looking right? ${this.playerLookingRight}`);
+        if (this.lookDirection == 'right' && !this.playerLookingRight) {
+            this.playerLookingRight = true;
+            this.playerLookingLeft = false;
+            this.player.rotateY(Math.PI);
+        } else if (this.lookDirection == 'left' && !this.playerLookingLeft) {
+            this.playerLookingRight = false;
+            this.playerLookingLeft = true;
+            this.player.rotateY(Math.PI);
+        }
+    }
+
+    animate() {
+        if (Math.abs(this.velocity.x) > 0.05) {
+            this.idleAnimation.stop();
+            this.walkingAnimation.play();
+        } else {
+            this.walkingAnimation.stop();
+            this.idleAnimation.play();
+        }
     }
 
     checkGroundStatus() {
@@ -192,29 +275,6 @@ export class OtherPlayer {
         if (this.health <= 0) {
             this.isDead = true;
             // do something
-        }
-    }
-
-    getCollisionDirection(playerBox, blockBox) {
-
-        const overlapLeft = playerBox.max.x - blockBox.min.x;
-        const overlapRight = blockBox.max.x - playerBox.min.x;
-        const overlapTop = playerBox.max.y - blockBox.min.y;
-        const overlapBottom = blockBox.max.y - playerBox.min.y;
-
-        const minOverlapX = Math.min(overlapLeft, overlapRight);
-        const minOverlapY = Math.min(overlapTop, overlapBottom);
-
-        if (minOverlapX < minOverlapY) {
-            return {
-                direction: overlapLeft < overlapRight ? 'left' : 'right',
-                overlap: minOverlapX
-            };
-        } else {
-            return {
-                direction: overlapTop < overlapBottom ? 'top' : 'bottom',
-                overlap: minOverlapY
-            };
         }
     }
 }
