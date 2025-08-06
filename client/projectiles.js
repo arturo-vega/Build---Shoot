@@ -15,12 +15,12 @@ export class Projectiles {
             let x2 = objectPosition.x;
             let y2 = objectPosition.y;
 
-            beamLength = Math.sqrt(Math.pow((x2 - x1),2) + Math.pow((y2 - y1),2));
+            beamLength = Math.sqrt(Math.pow((x2 - x1), 2) + Math.pow((y2 - y1), 2));
         }
         //radius top, radius bottom, height (length), radial segments (how 'round' it is)
-        const geometry = new THREE.CylinderGeometry( 0.1, 0.1, beamLength, 3 );
-        const material = new THREE.MeshBasicMaterial( {color: 0xffff00} );
-        const cylinder = new THREE.Mesh( geometry, material );
+        const geometry = new THREE.CylinderGeometry(0.1, 0.1, beamLength, 3);
+        const material = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+        const cylinder = new THREE.Mesh(geometry, material);
 
         cylinder.rotateZ(Math.PI / 2); // make beam horizontal along Z axis
 
@@ -42,8 +42,8 @@ export class Projectiles {
         };
 
         this.currentProjectiles.push(projectileType);
-        
-        this.scene.add( cylinder );
+
+        this.scene.add(cylinder);
     }
 
     update() {
@@ -54,7 +54,7 @@ export class Projectiles {
             if (projectile.type === 'beam') {
                 projectile.timeToLive -= 1;
                 projectile.object.material.opacity += 0.1;
-                
+
                 if (projectile.timeToLive <= 0) {
                     this.currentProjectiles.shift();
                     this.destroy(projectile);

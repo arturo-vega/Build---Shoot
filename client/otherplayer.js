@@ -70,9 +70,7 @@ export class OtherPlayer {
 
         this.loadSounds(soundPaths);
 
-        console.log("In the other player class");
-        console.log(this.model);
-
+        this.player.userData = { position: this.position };
         scene.add(this.model);
     }
 

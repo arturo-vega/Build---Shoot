@@ -78,6 +78,12 @@ export class Block {
         mesh.receiveShadow = true;
         mesh.material.transparent = true;
 
+        mesh.name = "block";
+        mesh.userData = {
+            type: 'block',
+            position: { x: this.x, y: this.y }
+        };
+
         textureLoader.load(`./textures/${this.type}.jpg`, (texture) => {
             texture.wrapS = THREE.RepeatWrapping;
             texture.wrapT = THREE.RepeatWrapping;

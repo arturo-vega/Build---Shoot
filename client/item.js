@@ -75,34 +75,48 @@ export class Item {
 
         const intersects = raycaster.intersectObjects(this.scene.children);
 
-        // should change this so that it differentiates between blocks
+        const taggableMeshes = ["head", "Body_1", "block"];
+
         if (intersects.length > 0) {
-            const firstIntersected = intersects[0];
+            for (let i = 0; i < intersects.length; i++) {
 
-            // creates the beam from the gun -------------------------
-            // this is for when the beam needs to be truncated because it intersected with an object
-            // sends player and coordinates of the object
-            this.game.projectiles.createBeam(
-                rayDirection,
-                { x: this.player.position.x, y: this.player.position.y }, // player position
-                { x: firstIntersected.object.position.x, y: firstIntersected.object.position.y } // object position
-            );
+                if (i == 0) {
+                    continue;
+                }
 
-            const block = this.world.getBlockAt(firstIntersected.object.position.x, firstIntersected.object.position.y);
-            if (block) {
-                this.world.damageBlock(block.x, block.y, damage);
-            }
-            // rudimentary player damage
-            for (const [playerId, otherPlayer] of this.game.otherPlayers) {
-                const intersectPos = firstIntersected.object.position;
-                const otherPos = otherPlayer.position;
+                // get the actual 3D game instance of what it intersects
+                const object = intersects[i].object;
 
-                if (intersectPos.x === otherPos.x && intersectPos.y === otherPos.y) {
+                if (taggableMeshes.includes(object.name)) {
+                    console.log("Tagged object:", object.name);
+                    // creates the beam from the gun -------------------------
+                    // this is for when the beam needs to be truncated because it intersected with an object
+                    // sends player and coordinates of the object
+                    this.game.projectiles.createBeam(
+                        rayDirection,
+                        { x: this.player.position.x, y: this.player.position.y }, // player position
+                        { x: object.position.x, y: object.position.y } // object position
+                    );
 
-                    otherPlayer.damage(damage, rayDirection);
-                    this.player.didDamage = true;
-                    this.player.damageDealt = damage;
-                    this.player.playerDamaged = playerId;
+                    const block = this.world.getBlockAt(object.position.x, object.position.y);
+                    if (block) {
+                        this.world.damageBlock(block.x, block.y, damage);
+                    }
+                    // rudimentary player damage
+                    for (const [playerId, otherPlayer] of this.game.otherPlayers) {
+                        const intersectPos = object.position;
+                        const otherPos = otherPlayer.position;
+
+                        if (intersectPos.x === otherPos.x && intersectPos.y === otherPos.y) {
+
+                            otherPlayer.damage(damage, rayDirection);
+                            this.player.didDamage = true;
+                            this.player.damageDealt = damage;
+                            this.player.playerDamaged = playerId;
+                        }
+                    }
+
+                    return;
                 }
             }
         } else {
@@ -110,6 +124,7 @@ export class Item {
             // this is for when the beam does not intersect so extends its full length
             this.game.projectiles.createBeam(rayDirection, { x: this.player.position.x, y: this.player.position.y });
         }
+
     }
 
     // used for finding out where to place blocks in the world

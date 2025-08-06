@@ -97,7 +97,7 @@ export class Player {
         this.playerBB.getSize(this.initialBBSize);
 
         this.boxHelper = new THREE.Box3Helper(this.playerBB, 0xffff00);
-        scene.add(this.boxHelper);
+        //scene.add(this.boxHelper);
 
         this.updateBoundingBox();
 
@@ -109,7 +109,7 @@ export class Player {
 
         this.ghostBlockOn = true;
 
-        scene.add(this.model);
+        scene.add(this.player);
         this.setupControls();
 
 
