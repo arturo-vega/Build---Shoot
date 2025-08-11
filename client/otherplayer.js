@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 export class OtherPlayer {
-    constructor(scene, world, velocity, position, health, listener, playerName, playerTeam, model) {
+    constructor(scene, world, velocity, position, health, listener, playerName, playerTeam, model, id) {
         this.scene = scene;
         this.world = world;
         this.health = health;
@@ -9,6 +9,7 @@ export class OtherPlayer {
         this.isDead = false;
         this.size = { x: 0.75, y: 1.75 };
         this.model = model;
+        this.id = id;
 
 
         this.maxVelocity = 6;
@@ -34,6 +35,7 @@ export class OtherPlayer {
 
         console.log(`Player Position: ${this.position.x}, ${this.position.y}`);
 
+        this.model.userData = { id: this.id };
         // player cube
         this.player = this.model;
         this.player.position.set(this.position.x, this.position.y + 5, 0);
@@ -70,7 +72,10 @@ export class OtherPlayer {
 
         this.loadSounds(soundPaths);
 
-        this.player.userData = { position: this.position };
+        this.player.userData = {
+            position: this.position,
+            id: this.id
+        };
         scene.add(this.model);
     }
 

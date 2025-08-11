@@ -6,7 +6,7 @@ import { FontLoader } from '../node_modules/three/examples/jsm/loaders/FontLoade
 import { ModelLoader } from './modelloader.js';
 
 export class Player {
-    constructor(scene, world, camera, startPosition, game, listener, playerName, playerTeam, model) {
+    constructor(scene, world, camera, startPosition, game, listener, playerName, playerTeam, model, id) {
         this.game = game;
         this.world = world;
         this.camera = camera;
@@ -22,6 +22,8 @@ export class Player {
         this.playerName = playerName;
         this.playerTeam = playerTeam;
         this.model = model;
+
+        this.id = id;
 
         this.playerLookingRight = true;
         this.playerLookingLeft = false;
@@ -73,6 +75,7 @@ export class Player {
         this.sounds = { shot: new THREE.PositionalAudio(this.listener) };
 
         // player model
+        this.model.userData = { id: this.id };
         this.player = this.model;
         this.player.position.set(this.position.x, this.position.y + 5, 0);
         this.player.rotateY(Math.PI / 2);
@@ -95,6 +98,10 @@ export class Player {
         this.playerBB.setFromObject(this.player);
         this.initialBBSize = new THREE.Vector3();
         this.playerBB.getSize(this.initialBBSize);
+
+        console.log(this.playerBB.min.x);
+        console.log(this.playerBB.x, this.playerBB.y);
+        console.log(this.playerBB.x + 0.75, this.playerBB.y + 2);
 
         this.boxHelper = new THREE.Box3Helper(this.playerBB, 0xffff00);
         //scene.add(this.boxHelper);

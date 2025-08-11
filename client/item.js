@@ -77,43 +77,47 @@ export class Item {
 
         const taggableMeshes = ["head", "Body_1", "block"];
 
-        if (intersects.length > 0) {
-            for (let i = 0; i < intersects.length; i++) {
-
-                if (i == 0) {
-                    continue;
-                }
+        // check after 1 because currently the beam will always detect the player's head
+        if (intersects.length > 1) {
+            for (let i = 1; i < intersects.length; i++) {
 
                 // get the actual 3D game instance of what it intersects
-                const object = intersects[i].object;
+                let object = intersects[i].object;
+                let intesectPoint = intersects[i].point;
 
                 if (taggableMeshes.includes(object.name)) {
-                    console.log("Tagged object:", object.name);
                     // creates the beam from the gun -------------------------
                     // this is for when the beam needs to be truncated because it intersected with an object
                     // sends player and coordinates of the object
                     this.game.projectiles.createBeam(
                         rayDirection,
                         { x: this.player.position.x, y: this.player.position.y }, // player position
-                        { x: object.position.x, y: object.position.y } // object position
+                        { x: intesectPoint.x, y: intesectPoint.y } // object position
                     );
 
                     const block = this.world.getBlockAt(object.position.x, object.position.y);
                     if (block) {
                         this.world.damageBlock(block.x, block.y, damage);
+                        return;
                     }
+
+                    let objectParent = object;
+                    while (objectParent.parent.type !== 'Scene') {
+                        objectParent = objectParent.parent;
+                    }
+
+                    if (this.player.id == objectParent.userData.id) {
+                        continue;
+                    }
+                    const otherPlayer = this.game.otherPlayers.get(objectParent.userData.id);
                     // rudimentary player damage
-                    for (const [playerId, otherPlayer] of this.game.otherPlayers) {
-                        const intersectPos = object.position;
-                        const otherPos = otherPlayer.position;
+                    if (otherPlayer) {
 
-                        if (intersectPos.x === otherPos.x && intersectPos.y === otherPos.y) {
+                        otherPlayer.damage(damage, rayDirection);
+                        this.player.didDamage = true;
+                        this.player.damageDealt = damage;
+                        this.player.playerDamaged = otherPlayer.id;
 
-                            otherPlayer.damage(damage, rayDirection);
-                            this.player.didDamage = true;
-                            this.player.damageDealt = damage;
-                            this.player.playerDamaged = playerId;
-                        }
                     }
 
                     return;
@@ -125,6 +129,18 @@ export class Item {
             this.game.projectiles.createBeam(rayDirection, { x: this.player.position.x, y: this.player.position.y });
         }
 
+    }
+
+    intersectsPlayerBB(playerBB, intesectPoint) {
+        if (intesectPoint.x >= playerBB.min.x &&
+            intesectPoint.x <= playerBB.max.x &&
+            intesectPoint.y >= playerBB.min.y &&
+            intesectPoint.y <= playerBB.max.y) {
+            console.log("intersected player");
+            return true;
+        }
+
+        return false;
     }
 
     // used for finding out where to place blocks in the world

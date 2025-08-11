@@ -79,7 +79,8 @@ export class Game {
                     this.listener,
                     player[1].playerName,
                     player[1].playerTeam,
-                    otherPlayerModel
+                    otherPlayerModel,
+                    player[1].id
                 );
 
                 this.otherPlayers.set(player[1].id, newPlayer);
@@ -195,6 +196,7 @@ export class Game {
                     });
             } else {
                 gltfLoader.load(this.playerModels.redRobot, (model) => {
+
                     playerModel = model.scene;
                     playerModel.animations = model.animations;
                     playerModel.scale.set(0.5, 0.5, 0.5);
@@ -224,7 +226,8 @@ export class Game {
                     this.listener,
                     this.playerName,
                     this.playerTeam,
-                    model
+                    model,
+                    this.socket.id
                 );
 
                 resolve(player);
@@ -237,10 +240,7 @@ export class Game {
 
     async loadNewPlayer(playerData) {
         let model = await this.loadPlayerModel(playerData.playerTeam);
-        console.log(`Player ${playerData.name} joined, model:`);
-        console.log(model);
-        console.log("Player data:")
-        console.log(playerData);
+        model.userData
 
         if (!this.otherPlayers.has(playerData.id)) {
             const newPlayer = new OtherPlayer(
@@ -252,13 +252,11 @@ export class Game {
                 this.listener,
                 playerData.playerName,
                 playerData.playerTeam,
-                model
+                model,
+                playerData.id
             );
 
             this.otherPlayers.set(playerData.id, newPlayer);
-
-            console.log("Other player in map:");
-            console.log(this.otherPlayers.get(playerData.id));
         }
     }
 
