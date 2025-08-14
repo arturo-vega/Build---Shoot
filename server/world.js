@@ -1,20 +1,83 @@
+import { Vector3 } from 'three/src/Three.Core.js';
 import { Block } from './block.js';
 
 export class World {
     constructor() {
         this.blocks = new Map();
         this.blockGhosts = new Map();
+        this.blueSpawn;
+        this.redSpawn;
+
+        this.baseSize = 30;
+        this.spawnArea = 10;
+        this.stairHeight = 15;
+        this.flagArea = 10;
+        this.mapDistance = 150;
 
         this.blocksRemoved = [];
 
         this.lastBlockModified = { x: 0, y: 0 };
 
         // creates initial blocks for the stage
-        for (let i = 0; i < 100; i++) {
-            for (let j = 0; j < 5; j++) {
-                this.createBlock(i, j, 'steel');
+        this.generateWorld(this.baseSize, this.stairHeight, this.spawnArea, this.mapDistance, this.flagArea);
+    }
+
+    generateWorld(baseSize, stairHeight, spawnArea, mapDistance, flagArea) {
+        let redBaseArray = new Array();
+        let stairsArray = new Array();
+        let blueBaseArray = new Array();
+        for (let x = 0; x < baseSize + flagArea; x++) {
+            for (let y = 0; y < 5; y++) {
+                redBaseArray.push({ x: x, y: y });
             }
         }
+        for (let x = spawnArea; x < baseSize; x++) {
+            for (let y = 5; y < x - spawnArea; y++) {
+                stairsArray.push({
+                    x: x,
+                    y: y
+                });
+            }
+        }
+
+        // red base
+        redBaseArray.forEach((block) => {
+            this.createBlock(block.x, block.y, 'steel');
+        });
+        stairsArray.forEach((block) => {
+            this.createBlock(block.x, block.y, 'steel');
+        });
+
+
+        // bridge between bases 
+        for (let x = baseSize; x < mapDistance + baseSize; x++) {
+            for (let y = 0; y < 5; y++) {
+                this.createBlock(x, y, 'wood');
+            }
+        }
+
+        const blueStart = (baseSize + mapDistance);
+
+        for (let x = blueStart; x < blueStart + baseSize + flagArea; x++) {
+            for (let y = 0; y < 5; y++) {
+                blueBaseArray.push({ x: x, y: y });
+            }
+        }
+
+        stairsArray.forEach((block) => {
+            this.createBlock(
+                -block.x + blueStart + baseSize + flagArea,
+                block.y,
+                'steel'
+            );
+        });
+        // right base
+        blueBaseArray.forEach((block) => {
+            this.createBlock(block.x, block.y, 'steel');
+        });
+
+        this.redSpawn = new Vector3((spawnArea / 2).x, 10, 0);
+        this.blueSpawn = new Vector3(((baseSize * 2) + (flagArea * 2) + spawnArea / 2), 10, 0);
     }
 
     createBlock(x, y, type = 'wood', health) {

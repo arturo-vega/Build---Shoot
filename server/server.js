@@ -105,8 +105,11 @@ io.on('connection', (socket) => {
         );
 
         // send info to the player that joined
-        socket.emit('teamAssigned', room.players.get(socket.id).playerTeam);
-        console.log(`Player team: ${room.players.get(socket.id).playerTeam}`);
+        socket.emit('teamAssigned', {
+            playerTeam: room.players.get(socket.id).playerTeam,
+            spawnPoint: room.players.get(socket.id).playerTeam == 'red' ? room.world.redSpawn : room.world.blueSpawn
+        });
+
         // even though there will never be any players on the start of a room this needs to be
         // sent to initialize the game on the client
         let transitPlayers = JSON.stringify(Array.from(room.players));
@@ -154,8 +157,10 @@ io.on('connection', (socket) => {
             });
 
             // send info to the player that joined
-            socket.emit('teamAssigned', room.players.get(socket.id).playerTeam);
-            console.log(`Player team: ${room.players.get(socket.id).playerTeam}`);
+            socket.emit('teamAssigned', {
+                playerTeam: room.players.get(socket.id).playerTeam,
+                spawnPoint: room.players.get(socket.id).playerTeam == 'red' ? room.world.redSpawn : room.world.blueSpawn
+            });
             // send player map before adding the player than joined to it
             let transitPlayers = JSON.stringify(Array.from(room.players));
             socket.emit('initialPlayerStates', transitPlayers);

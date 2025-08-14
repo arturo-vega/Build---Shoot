@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 export class OtherPlayer {
-    constructor(scene, world, velocity, position, health, listener, playerName, playerTeam, model, id) {
+    constructor(scene, world, velocity, spawnPoint, health, listener, playerName, playerTeam, model, id) {
         this.scene = scene;
         this.world = world;
         this.health = health;
@@ -30,15 +30,16 @@ export class OtherPlayer {
         this.playerTeam = playerTeam;
 
         //this.id = id
+        this.spawnPoint = spawnPoint;
         this.velocity = velocity;
-        this.position = position;
+        this.position = spawnPoint;
 
         console.log(`Player Position: ${this.position.x}, ${this.position.y}`);
 
         this.model.userData = { id: this.id };
         // player cube
         this.player = this.model;
-        this.player.position.set(this.position.x, this.position.y + 5, 0);
+        this.player.position.set(this.position.x, this.position.y + 5, this.position.z);
         this.player.rotateY(Math.PI / 2);
         //this.model.position.set(this.player.position.x, this.player.position.y, 0);
 
@@ -273,11 +274,19 @@ export class OtherPlayer {
 
     damage(rayDirection, amount) {
         this.health = this.health - amount;
-        this.velocity.x += (rayDirection.x * 0.25);
-        this.velocity.y += (rayDirection.y * 0.25);
+        this.velocity.x += (rayDirection.x * 10);
+        this.velocity.y += (rayDirection.y * 15);
+        this.onGround = false;
         if (this.health <= 0) {
             this.isDead = true;
-            // do something
+            this.thenDie(rayDirection);
         }
+    }
+
+    thenDie(rayDirection) {
+        this.velocity.x += (rayDirection.x * 15);
+        this.velocity.y += 15 * (rayDirection.y * 10)
+        const zAngle = Math.random();
+        zAngle > .5 ? this.velocity.z += 15 : this.velocity.z -= 15;
     }
 }

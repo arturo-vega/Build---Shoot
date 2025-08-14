@@ -15,6 +15,8 @@ export class Game {
         this.socket = socket;
         this.playerName = playerName;
         this.playerTeam;
+        this.deathFloor = -10;
+        this.spawnPoint;
 
         this.otherPlayers = new Map();
         this.gameModels = new Map();
@@ -44,7 +46,7 @@ export class Game {
         this.scene = new THREE.Scene();
         this.listener = new THREE.AudioListener();
 
-        this.camera = new THREE.PerspectiveCamera(100, this.windowWidth / this.windowHeight);
+        this.camera = new THREE.PerspectiveCamera(60, this.windowWidth / this.windowHeight);
         this.camera.add(this.listener);
         const canvas = document.querySelector('canvas.webgl');
 
@@ -59,7 +61,8 @@ export class Game {
     }
 
     async initializeGame() {
-        this.playerTeam = await this.getAssignedTeam();
+        await this.getAssignedTeam();
+        console.log(`Spawnpoint: ${this.spawnPoint}`);
         this.otherPlayers = await this.getOtherPlayers();
         console.log("otherPlayers map");
         console.log(this.otherPlayers);
@@ -69,14 +72,7 @@ export class Game {
         this.player = await this.loadPlayer(playerModel);
 
         for (const player of this.otherPlayers) {
-            console.log("TRYING TO LOAD OTHER PLAYERS");
-            console.log(player[1]);
             let otherPlayerModel = await this.loadPlayerModel(player[1].playerTeam);
-
-            console.log("Other player model");
-            console.log(otherPlayerModel);
-            console.log("Other player object");
-            console.log(player[1]);
 
             if (!this.otherPlayers.has(player.socketId)) {
                 const newPlayer = new OtherPlayer(
@@ -115,10 +111,14 @@ export class Game {
         this.lastUpdateTime = performance.now();
 
         // for communication with server
-        this.updateRate = 15; // milliseconds
+        this.updateRate = 25; // milliseconds
         this.lastUpdateSent = 0;
 
         this.setupSocketListeners();
+
+        this.socket.off('initialWorldState');
+        this.socket.off('initialPlayerStates');
+        this.socket.off('teamAssigned');
 
         this.animate();
     }
@@ -128,6 +128,8 @@ export class Game {
             this.socket.on('teamAssigned', (team) => {
                 try {
                     console.log(`Assigned team: ${team}`);
+                    this.playerTeam = team.playerTeam;
+                    this.spawnPoint = team.spawnPoint;
                     resolve(team);
                 } catch (error) {
                     console.error("Couldn't get assigned team", error);
@@ -237,12 +239,11 @@ export class Game {
     loadPlayer(model) {
         return new Promise((resolve, reject) => {
             try {
-                const playerStartPosition = new THREE.Vector2(10, 10);
                 const player = new Player(
                     this.scene,
                     this.world,
                     this.camera,
-                    playerStartPosition,
+                    this.spawnPoint,
                     this,
                     this.listener,
                     this.playerName,
@@ -518,7 +519,7 @@ export class Game {
         this.updateOtherPlayers(deltaTime);
 
         // update camera to follow player
-        this.camera.position.set(this.player.position.x, this.player.position.y, 5);
+        this.camera.position.set(this.player.position.x, Math.max(this.player.position.y + 3, this.deathFloor), 25);
         this.camera.lookAt(this.player.position.x, this.player.position.y, 0);
 
         this.sendPVPInfo();
@@ -588,7 +589,6 @@ export class Game {
             }
         });
 
-        this.socket.off('initialWorldState');
         this.socket.off('playerJoined');
         this.socket.off('playerMoved');
         this.socket.off('playerLeft');

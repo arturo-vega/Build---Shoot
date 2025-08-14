@@ -3,10 +3,9 @@ import { GLTFLoader } from '../node_modules/three/examples/jsm/loaders/GLTFLoade
 import { Item } from '/item.js';
 import { TextGeometry } from '../node_modules/three/examples/jsm/geometries/TextGeometry.js';
 import { FontLoader } from '../node_modules/three/examples/jsm/loaders/FontLoader.js';
-import { ModelLoader } from './modelloader.js';
 
 export class Player {
-    constructor(scene, world, camera, startPosition, game, listener, playerName, playerTeam, model, id) {
+    constructor(scene, world, camera, spawnPoint, game, listener, playerName, playerTeam, model, id) {
         this.game = game;
         this.world = world;
         this.camera = camera;
@@ -14,9 +13,10 @@ export class Player {
         this.onGround = false;
         this.jumpPressed = false;
         this.health = 100;
-        this.velocity = { x: 0, y: 0 };
+        this.velocity = { x: 0, y: 0, z: 0 };
         this.size = { x: 0.75, y: 2, z: 0.25 };
-        this.position = startPosition;
+        this.spawnPoint = spawnPoint;
+        this.position = spawnPoint;
         this.previousMousePosition = { x: 10, y: 10 };
         this.currentMousePosition = { x: 0, y: 0 };
         this.playerName = playerName;
@@ -77,10 +77,8 @@ export class Player {
         // player model
         this.model.userData = { id: this.id };
         this.player = this.model;
-        this.player.position.set(this.position.x, this.position.y + 5, 0);
+        this.player.position.set(this.position.x, this.position.y + 5, this.position.z);
         this.player.rotateY(Math.PI / 2);
-        //this.model.position.set(this.player.position.x, this.player.position.y, 0);
-
 
         // animation stuff
         this.mixer = new THREE.AnimationMixer(this.player);
@@ -115,6 +113,9 @@ export class Player {
         this.loadSounds(soundPaths);
 
         this.ghostBlockOn = true;
+
+        console.log("THIS POSITION!!!");
+        console.log(this.player.position);
 
         scene.add(this.player);
         this.setupControls();
@@ -219,11 +220,6 @@ export class Player {
 
         // Update the box helper
         this.boxHelper.box.copy(this.playerBB);
-
-        //console.log(`BoundingBox width: ${this.playerBB.max.x - this.playerBB.min.x} height: ${this.playerBB.max.y - this.playerBB.min.y}`);
-        //console.log(`BBminx: ${this.playerBB.min.x} BBmaxX: ${this.playerBB.max.x} BBminy: ${this.playerBB.min.y} BBmaxy: ${this.playerBB.max.y}`);
-        //console.log(`Position.x = ${this.position.x} This position.y = ${this.position.y} BoundingBox x = ${this.playerBB.min.x} y = ${this.playerBB.min.y}`);
-        //console.log`Position x:${this.position.x} y:${this.position.y} - bb.min.x${this.playerBB.min.x} bb.min.y${this.playerBB.min.y} - bb.max.x${this.playerBB.max.x} bb.max.y${this.playerBB.max.y}`
     }
 
     applyGravity() {
@@ -244,12 +240,13 @@ export class Player {
 
         this.moveHorizontally(deltaTime);
         this.moveVertically(deltaTime);
+        this.moveOrthoganal(deltaTime);
         this.setLookDirection();
         this.setWalkingDirection();
         this.mixer.update(deltaTime);
         this.animate();
 
-        this.player.position.set(this.position.x, this.position.y, 0);
+        this.player.position.set(this.position.x, this.position.y, this.position.z);
         this.updateBoundingBox();
         this.updateGhost();
     }
@@ -328,7 +325,16 @@ export class Player {
         }
     }
 
+    moveOrthoganal(deltaTime) {
+        if (this.isDead) {
+            this.position.z += this.velocity.z * deltaTime;
+        }
+    }
+
     hasCollisionAt(nextPosition) {
+        if (this.isDead) {
+            return false;
+        }
         const originalPosition = this.player.position.clone();
         this.player.position.set(nextPosition.x, nextPosition.y, 0);
         this.updateBoundingBox();
@@ -362,6 +368,13 @@ export class Player {
     }
 
     applyFriction() {
+        if (this.isDead) {
+            if (this.velocity.z > 0) {
+                this.velocity.z -= this.friction;
+            } else {
+                this.velocity.z += this.friction;
+            }
+        }
         if (Math.abs(this.velocity.x) < 0.05) {
             this.velocity.x = 0;
         } else {
@@ -487,14 +500,23 @@ export class Player {
     }
 
     damage(rayDirection, amount) {
+        console.log(this.velocity);
         this.health = this.health - amount;
-        this.velocity.x += (rayDirection.x * 5.25);
-        this.velocity.y += (rayDirection.y * 0.3);
+        this.velocity.x += (rayDirection.x * 10);
+        this.velocity.y += (rayDirection.y * 15);
         this.onGround = false;
         if (this.health <= 0) {
             this.isDead = true;
-            // do something?
+            this.thenDie(rayDirection);
         }
+    }
+
+    thenDie(rayDirection) {
+        this.velocity.x += (rayDirection.x * 20);
+        this.velocity.y += 20
+        const zAngle = Math.random();
+        zAngle > 0.5 ? this.velocity.z += 5 : this.velocity.z -= 5;
+        this.player.rotateX(Math.PI / 2);
     }
 
     // used for finding out where to place blocks in the world
