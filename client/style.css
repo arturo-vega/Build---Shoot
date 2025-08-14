@@ -305,7 +305,7 @@ canvas.webgl {
 .fpscounter-container {
     position: absolute;
     top: 20px;
-    right: 240px;
+    right: 50px;
     display: flex;
     align-items: center;
     background-color: rgba(0, 0, 0, 0.5);
@@ -334,6 +334,37 @@ canvas.webgl {
     margin-bottom: 5px;
     font-weight: bold;
     text-shadow: 1px 1px 2px black;
+}
+
+.game-info-container {
+    position: absolute;
+    top: 20px;
+    left: 400px;
+    display: flex;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.blue-score-label {
+    font-weight: bold;
+    color: blue;
+    text-shadow: 1px 1px 2px black;
+    font-size: 5ch
+}
+
+.game-time-label {
+    font-weight: bold;
+    text-shadow: 1px 1px 2px black;
+    font-size: 5ch
+}
+
+.red-score-label {
+    color: red;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px black;
+    font-size: 5ch
 }
 
 /* Weapon Display Styling */

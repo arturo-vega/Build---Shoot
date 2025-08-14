@@ -85,43 +85,43 @@ export class Item {
                 let object = intersects[i].object;
                 let intesectPoint = intersects[i].point;
 
-                if (taggableMeshes.includes(object.name)) {
-                    // creates the beam from the gun -------------------------
-                    // this is for when the beam needs to be truncated because it intersected with an object
-                    // sends player and coordinates of the object
-                    this.game.projectiles.createBeam(
-                        rayDirection,
-                        { x: this.player.position.x, y: this.player.position.y }, // player position
-                        { x: intesectPoint.x, y: intesectPoint.y } // object position
-                    );
+                // creates the beam from the gun -------------------------
+                // this is for when the beam needs to be truncated because it intersected with an object
+                // sends player and coordinates of the object
+                this.game.projectiles.createBeam(
+                    rayDirection,
+                    { x: this.player.position.x, y: this.player.position.y }, // player position
+                    { x: intesectPoint.x, y: intesectPoint.y } // object position
+                );
 
-                    const block = this.world.getBlockAt(object.position.x, object.position.y);
-                    if (block) {
-                        this.world.damageBlock(block.x, block.y, damage);
-                        return;
-                    }
-
-                    let objectParent = object;
-                    while (objectParent.parent.type !== 'Scene') {
-                        objectParent = objectParent.parent;
-                    }
-
-                    if (this.player.id == objectParent.userData.id) {
-                        continue;
-                    }
-                    const otherPlayer = this.game.otherPlayers.get(objectParent.userData.id);
-                    // rudimentary player damage
-                    if (otherPlayer) {
-
-                        otherPlayer.damage(damage, rayDirection);
-                        this.player.didDamage = true;
-                        this.player.damageDealt = damage;
-                        this.player.playerDamaged = otherPlayer.id;
-
-                    }
-
+                const block = this.world.getBlockAt(object.position.x, object.position.y);
+                if (block) {
+                    this.world.damageBlock(block.x, block.y, damage);
                     return;
                 }
+
+                let objectParent = object;
+                while (objectParent.parent.type !== 'Scene') {
+                    objectParent = objectParent.parent;
+
+                    if (objectParent.parent === null || objectParent === null) {
+                        break;
+                    }
+                }
+
+                if (this.player.id == objectParent.userData.id) {
+                    continue;
+                }
+                const otherPlayer = this.game.otherPlayers.get(objectParent.userData.id);
+                // rudimentary player damage
+                if (otherPlayer) {
+
+                    otherPlayer.damage(damage, rayDirection);
+                    this.player.didDamage = true;
+                    this.player.damageDealt = damage;
+                    this.player.playerDamaged = otherPlayer.id;
+                }
+                return;
             }
         } else {
             // creates the beam from the gun -------------------------

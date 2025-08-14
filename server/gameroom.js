@@ -1,16 +1,36 @@
 import { World } from './world.js';
-import { GameState } from './gamestate.js';
+import { GameState } from '../shared/gamestate.js';
 
 export class GameRoom {
-    constructor(id, creatorName, maxPlayers = 8) {
+    constructor(id, creatorName, maxPlayers = 8, gameType, gameTime) {
         this.id = id;
         this.creatorName = creatorName;
         this.maxPlayers = maxPlayers;
         this.players = new Map();
         this.world = new World();
-        this.gameState = new GameState();
+        this.gameState = new GameState(gameType, gameTime);
         this.createdAt = Date.now();
         this.lastActivity = Date.now();
+
+        this.gameType = gameType;
+        this.gameTime = gameTime;
+
+        this.timeRemaining = this.gameTime;
+        this.redTeamScore = 0;
+        this.blueTeamScore = 0;
+
+        this.gameState.gameStart();
+    }
+
+    gameStateUpdate() {
+        const gameUpdate =
+        {
+            timeRemaining: this.gameState.timeRemaining,
+            redTeamScore: this.gameState.teamScore.red,
+            blueTeamScore: this.gameState.teamScore.blue,
+        }
+
+        return gameUpdate;
     }
 
     roomHasPlayer(socketId) {
@@ -25,28 +45,31 @@ export class GameRoom {
         if (this.players.size >= this.maxPlayers) {
             return false;
         }
-
-        console.log("Adding player to gameRoom");
-        console.log(playerData);
-
-        console.log("Players in room");
-        console.log(this.players);
+        const team = this.gameState.assignTeam(playerData);
+        console.log(`${playerData.playerName} assigned to ${team} team`);
+        console.log(this.gameState.teamPopulation);
 
         this.players.set(socketId, {
             ...playerData,
             joinedAt: Date.now(),
             lastUpdate: performance.now(),
-            playerTeam: 'red'  // TEMPORARY UNTIL THE GAMESTATE IS IMPLIMENTED 
+            playerTeam: team
         });
 
         this.lastActivity = Date.now();
     }
 
     removePlayer(socketId) {
+        const unassigned = this.gameState.playerLeft(socketId);
         const removed = this.players.delete(socketId);
-        if (removed) {
+        if (removed && unassigned) {
             this.lastActivity = Date.now();
+        } else {
+            console.error(`Player ${socketId} not successffully removed from game room: unassigned status: ${unassigned} removed status: ${removed}`);
         }
+
+        console.log(this.gameState.teamPopulation);
+
         return removed;
     }
 

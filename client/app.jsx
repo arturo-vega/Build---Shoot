@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import HealthBar from './components/healthbar.jsx';
 import WeaponDisplay from './components/weapondisplay.jsx';
 import FPSCounter from './components/fpscounter.jsx';
+import GameInfo from './components/gameinfo.jsx';
 import io from 'socket.io-client';
 import { Game } from './game.js';
 
@@ -10,6 +11,9 @@ function App() {
     const [playerHealth, setPlayerHealth] = useState(100);
     const [currentWeapon, setCurrentWeapon] = useState('Pistol');
     const [gameFPS, setCurrentFPS] = useState(0);
+    const [redScore, setRedScore] = useState(0);
+    const [blueScore, setBlueScore] = useState(0);
+    const [gameTime, setGameTime] = useState(600);
 
     // 'menu', 'connecting', 'playing'
     const [gameState, setGameState] = useState('');
@@ -24,6 +28,9 @@ function App() {
             if (window.gameInstance && window.gameInstance.player) {
                 setPlayerHealth(window.gameInstance.player.health);
                 setCurrentFPS(window.gameInstance.FPS);
+                setRedScore(window.gameInstance.gameState.teamScore.red);
+                setBlueScore(window.gameInstance.gameState.teamScore.blue);
+                setGameTime(window.gameInstance.gameState.timeRemaining);
 
                 const weapon = window.gameInstance.player.itemNames[window.gameInstance.player.currentItemIndex];
                 setCurrentWeapon(weapon);
@@ -147,6 +154,7 @@ function App() {
                 <HealthBar health={playerHealth} />
                 <WeaponDisplay weapon={currentWeapon} />
                 <FPSCounter fps={gameFPS} />
+                <GameInfo blueScore={blueScore} redScore={redScore} gameTime={gameTime} />
                 <button
                     className="back-button"
                     onClick={backToMenu}

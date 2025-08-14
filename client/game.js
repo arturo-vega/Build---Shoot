@@ -4,15 +4,21 @@ import { OtherPlayer } from './otherplayer.js';
 import { Player } from './player.js';
 import { Projectiles } from './projectiles.js';
 import { World } from './world.js';
+import { GameState } from '../shared/gamestate.js';
+
+
+// CHANGE CLIENT SIDE PLAYER UPDATES TO socket.volatile.emit
+// WILL NOT SEND BUFFERED INFORMATION IS CONNECTION IS UNSTEADY!
 
 export class Game {
     constructor(socket, playerName) {
         this.socket = socket;
         this.playerName = playerName;
-        this.playerTeam = 'red'; // change this later
+        this.playerTeam;
 
         this.otherPlayers = new Map();
         this.gameModels = new Map();
+        this.gameState = new GameState();
 
         this.playerModels = {
             blueRobot: './models/bluerobot.glb',
@@ -53,6 +59,7 @@ export class Game {
     }
 
     async initializeGame() {
+        this.playerTeam = await this.getAssignedTeam();
         this.otherPlayers = await this.getOtherPlayers();
         console.log("otherPlayers map");
         console.log(this.otherPlayers);
@@ -62,7 +69,9 @@ export class Game {
         this.player = await this.loadPlayer(playerModel);
 
         for (const player of this.otherPlayers) {
-            let otherPlayerModel = await this.loadPlayerModel(player[1]);
+            console.log("TRYING TO LOAD OTHER PLAYERS");
+            console.log(player[1]);
+            let otherPlayerModel = await this.loadPlayerModel(player[1].playerTeam);
 
             console.log("Other player model");
             console.log(otherPlayerModel);
@@ -109,12 +118,23 @@ export class Game {
         this.updateRate = 15; // milliseconds
         this.lastUpdateSent = 0;
 
-        // buffer for interpolation
-        this.positionBuffer = new Map();
-
         this.setupSocketListeners();
 
         this.animate();
+    }
+
+    getAssignedTeam() {
+        return new Promise((resolve, reject) => {
+            this.socket.on('teamAssigned', (team) => {
+                try {
+                    console.log(`Assigned team: ${team}`);
+                    resolve(team);
+                } catch (error) {
+                    console.error("Couldn't get assigned team", error);
+                    reject(error);
+                }
+            });
+        });
     }
 
     // this can be only used to load models that are spawned once
@@ -154,7 +174,7 @@ export class Game {
                     otherPlayers.delete(this.socket.id);
                     resolve(otherPlayers);
                 } catch (error) {
-                    console.error('Failed to load players:" error');
+                    console.error("Failed to load players:", error);
                     reject(error);
                 }
             });
@@ -183,18 +203,19 @@ export class Game {
             const gltfLoader = new GLTFLoader();
             if (playerTeam === 'blue') {
                 gltfLoader.load(this.playerModels.blueRobot, (model) => {
+
                     playerModel = model.scene;
                     playerModel.animations = model.animations;
-                    model.scene.scale.set(0.5, 0.5, 0.5);
+                    playerModel.scale.set(0.5, 0.5, 0.5);
 
-                    resolve(model);
+                    resolve(playerModel);
                 },
                     undefined, // This is part of GLTFLoader async error handling
                     (error) => {
                         console.error(`Failed to load model: ${model}`, error);
                         reject(error);
                     });
-            } else {
+            } else if (playerTeam === 'red') {
                 gltfLoader.load(this.playerModels.redRobot, (model) => {
 
                     playerModel = model.scene;
@@ -269,22 +290,7 @@ export class Game {
         this.socket.on('playerMoved', (updateData) => {
             const player = this.otherPlayers.get(updateData.id);
             if (player) {
-                // store in position buffer for interpolation
-                if (!this.positionBuffer.has(updateData.id)) {
-                    this.positionBuffer.set(updateData.id, []);
-                }
-
                 this.updateOtherPlayerPosition(updateData, player);
-
-                const buffer = this.positionBuffer.get(updateData.id);
-                buffer.push({
-                    position: new THREE.Vector2().copy(updateData.position),
-                    velocity: new THREE.Vector2().copy(updateData.velocity),
-                    timestamp: performance.now()
-                });
-                // keeping only last half second of buffer data
-                this.positionBuffer.set(updateData.id, buffer.filter(entry => entry.timestamp > performance.now() - 500));
-
             }
         });
 
@@ -348,7 +354,6 @@ export class Game {
                 console.log(`Player left: ${playerId}`);
                 this.scene.remove(player.player);
                 this.otherPlayers.delete(playerId);
-                this.positionBuffer.delete(playerId);
             }
         });
 
@@ -362,6 +367,12 @@ export class Game {
 
         this.socket.on('roomLeft', () => {
             console.log('Left the room');
+        });
+
+        this.socket.on('gameStateUpdate', (update) => {
+            this.gameState.timeRemaining = update.timeRemaining;
+            this.gameState.teamScore.red = update.redTeamScore;
+            this.gameState.teamScore.blue = update.blueTeamScore
         });
     }
 
@@ -417,9 +428,6 @@ export class Game {
         });
     }
 
-    // CHANGE THIS SO THAT IF A PLAYER FIRES AND HITS A PLAYER IT DRAWS A LINE TO THEM
-    // ALSO ON THE FINAL SHOT THAT DESTROYS A BLOCK THE BEAM LENGTH IS 40 AND NOT HOWEVER
-    // FAR AWAY THE BLOCK WAS WHEN IT WAS DESTROYED
     sendPVPInfo() {
         if (this.player.didDamage) {
             console.log('Sent player damage info');
@@ -496,14 +504,7 @@ export class Game {
         const currentTime = performance.now();
         const deltaTime = (currentTime - this.lastUpdateTime) / 500;
 
-        // calculate FPS
-        this.frameCount++;
-        this.timeElapsed += (currentTime - this.lastUpdateTime);
-        if (this.timeElapsed / 1000 >= 1) {
-            this.FPS = this.frameCount;
-            this.timeElapsed = 0;
-            this.frameCount = 0;
-        }
+        this.caluclateFps(currentTime);
 
         this.player.update(deltaTime);
         this.world.update();
@@ -527,6 +528,16 @@ export class Game {
         this.lastUpdateTime = currentTime;
     }
 
+    caluclateFps(currentTime) {
+        this.frameCount++;
+        this.timeElapsed += (currentTime - this.lastUpdateTime);
+        if (this.timeElapsed / 1000 >= 1) {
+            this.FPS = this.frameCount;
+            this.timeElapsed = 0;
+            this.frameCount = 0;
+        }
+    }
+
     render() {
         this.renderer.render(this.scene, this.camera);
     }
@@ -534,51 +545,8 @@ export class Game {
     // updates all the other players in the otherPlayers map
     updateOtherPlayers(deltaTime) {
         for (const player of this.otherPlayers) {
-            //const buffer = this.positionBuffer.get(playerId);
-
-            //if (buffer && buffer.length >= 2) {
-            //    this.interpolatePlayerPosition(player, buffer, deltaTime);
-            //}
-
-            // apply prediction based on velocity
-            //player.position.add(player.velocity.clone().multiplyScalar(deltaTime));
-            //player.player.position.copy(player.position);
-
-
-            // update collisions
             player[1].update(deltaTime);
         }
-    }
-
-    interpolatePlayerPosition(player, buffer, deltaTime) {
-        let currentTime = performance.now();
-        // the position buffer contains previous movements of other players along with a new movements
-        // not yet rendered. We need to find the two movement positions we have the player currently
-        // rendered
-        // work on this later
-        let previousUpdate = buffer[buffer.length - 2];
-        let nextUpdate = buffer[buffer.length - 1];
-
-        for (let i = buffer.length - 1; i > 0; i--) {
-            if (buffer[i].timestamp > currentTime) {
-                previousUpdate = buffer[i - 1];
-                nextUpdate = buffer[i];
-
-            }
-        }
-
-        // sets this vector to be the vector linearly interpolated between v1 and v2 by progress
-        player.position.lerpVectors(
-            previousUpdate.position,
-            nextUpdate.position * deltaTime,
-            0.2
-        );
-        // ditto
-        player.velocity.lerpVectors(
-            previousUpdate.velocity,
-            nextUpdate.velocity * deltaTime,
-            0.2
-        );
     }
 
     loadSkyBox() {
@@ -600,7 +568,6 @@ export class Game {
             color: 0xffffff,
             envMap: textureCube
         });
-
     }
 
     cleanup() {

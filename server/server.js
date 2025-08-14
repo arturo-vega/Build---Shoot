@@ -3,7 +3,6 @@ import { createServer } from 'http';
 import path from 'path';
 import { Server } from 'socket.io';
 import { fileURLToPath } from 'url';
-import { World } from './world.js';
 import { GameRoom } from './gameroom.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -62,7 +61,6 @@ function cleanupEmptyRooms() {
 // cleanup rooms every 5 mins
 setInterval(cleanupEmptyRooms, 5 * 60 * 1000);
 
-//const loader = new THREE.ObjectLoader();
 
 io.on('connection', (socket) => {
     console.log('A user connected with socket id: ', socket.id);
@@ -77,7 +75,7 @@ io.on('connection', (socket) => {
 
     socket.on('createRoom', (data) => {
         const roomId = generateRoomId();
-        const room = new GameRoom(roomId, socket.playerName || data.playerName);
+        const room = new GameRoom(roomId, socket.playerName || data.playerName, 8, 'dm', 600);
 
         rooms.set(roomId, room);
 
@@ -87,7 +85,7 @@ io.on('connection', (socket) => {
             velocity: { x: 0, y: 0, z: 0 },
             health: 100,
             id: socket.id,
-            playerTeam: socket.playerTeam || 'red'
+            playerTeam: socket.playerTeam
         });
 
         socket.join(roomId);
@@ -100,6 +98,15 @@ io.on('connection', (socket) => {
             room: room.toJSON()
         });
 
+        setInterval(() => {
+            io.to(roomId).emit('gameStateUpdate', room.gameStateUpdate())
+        },
+            500
+        );
+
+        // send info to the player that joined
+        socket.emit('teamAssigned', room.players.get(socket.id).playerTeam);
+        console.log(`Player team: ${room.players.get(socket.id).playerTeam}`);
         // even though there will never be any players on the start of a room this needs to be
         // sent to initialize the game on the client
         let transitPlayers = JSON.stringify(Array.from(room.players));
@@ -132,7 +139,7 @@ io.on('connection', (socket) => {
             velocity: { x: 0, y: 0, z: 0 },
             health: 100,
             id: socket.id,
-            playerTeam: socket.playerTeam || 'red'
+            playerTeam: socket.playerTeam
         });
 
         if (room.roomHasPlayer(socket.id)) {
@@ -146,6 +153,9 @@ io.on('connection', (socket) => {
                 room: room.toJSON()
             });
 
+            // send info to the player that joined
+            socket.emit('teamAssigned', room.players.get(socket.id).playerTeam);
+            console.log(`Player team: ${room.players.get(socket.id).playerTeam}`);
             // send player map before adding the player than joined to it
             let transitPlayers = JSON.stringify(Array.from(room.players));
             socket.emit('initialPlayerStates', transitPlayers);
@@ -154,8 +164,7 @@ io.on('connection', (socket) => {
             let transitBlocks = JSON.stringify(Array.from(room.world.blocks));
             socket.emit('initialWorldState', transitBlocks);
 
-            console.log("Emitting player joined");
-            console.log(room.players.get(socket.id));
+
             socket.to(data.roomId).emit('playerJoined', room.players.get(socket.id));
 
             // send this player to everyone else in the
@@ -346,6 +355,7 @@ function removeBlock(blockData, room, roomId, socket) {
 function handlePlayerLeaveRoom(socket, roomId) {
     const room = rooms.get(roomId);
     if (room) {
+
         room.removePlayer(socket.id);
 
         socket.to(roomId).emit('playerLeft', socket.id);

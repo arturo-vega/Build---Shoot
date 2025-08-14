@@ -1,10 +1,9 @@
 export class GameState {
-    constructor() {
-        this.gameType = 'ctf';
-        this.gameTime = 600;
+    constructor(gameType, gameTime) {
+        this.gameType = gameType;
+        this.gameTime = gameTime;
         this.breakTime = 30;
         this.timeRemaining = 0;
-        this.gameStart = performance.now();
         this.redPlayers = new Map();
         this.bluePlayers = new Map();
         this.teamPopulation = {
@@ -58,29 +57,32 @@ export class GameState {
     }
 
     assignTeam(player) {
-        if (this.teamPopulation['red'] && this.teamPopulation['blue']) {
-            this.redPlayers.set(player.playerName, player);
+        if (this.teamPopulation['red'] === this.teamPopulation['blue']) {
+            this.redPlayers.set(player.id, player);
             this.teamPopulation['red']++;
+            return 'red';
         }
         else if (this.teamPopulation['red'] < this.teamPopulation['blue']) {
-            this.redPlayers.set(player.playerName, player);
+            this.redPlayers.set(player.id, player);
             this.teamPopulation['red']++;
+            return 'red';
         } else {
-            this.bluePlayers.set(player.playerName, player);
+            this.bluePlayers.set(player.id, player);
             this.teamPopulation['blue']++;
+            return 'blue';
         }
     }
 
-    playerLeft(player) {
-        if (this.redPlayers.has(player.playerName)) {
-            this.redPlayers.delete(player.Playername);
+    playerLeft(playerId) {
+        if (this.redPlayers.has(playerId)) {
             this.teamPopulation['red']--;
+            return this.redPlayers.delete(playerId);
         }
-        else if (this.bluePlayers.has(player.playerName)) {
-            this.bluePlayers.delete(player.Playername);
+        else if (this.bluePlayers.has(playerId)) {
             this.teamPopulation['blue']--;
+            return this.bluePlayers.delete(playerId);
         } else {
-            console.error(`${player.playerName} not assigned to any team`);
+            console.error(`${playerId} not assigned to any team`);
         }
     }
 
@@ -94,7 +96,8 @@ export class GameState {
                 const timeOut = true;
                 this.gameOver(timeOut);
             }
-        }, 1000);
+        }, 1000); // decrement timer every second
+
     }
 
     gameOver(timeOut = false) {
@@ -102,12 +105,16 @@ export class GameState {
             if (this.teamScore['red'] > this.teamScore['blue']) {
                 this.redTeamWon = true;
             } else if (this.teamScore['red'] < this.teamScore['blue']) {
-                this.blueTeamwon = false;
+                this.blueTeamwon = true;
             } else {
                 this.tie = true;
             }
         } else {
-            this.teamScore['red'] >= this.scoreToWin ? this.redTeamWon : this.blueTeamWon;
+            if (this.teamScore['red'] > this.teamScore['blue']) {
+                this.redTeamWon = true;
+            } else if (this.teamScore['red'] < this.teamScore['blue']) {
+                this.blueTeamwon = true;
+            }
         }
 
         this.gameEnded = true;
@@ -122,5 +129,3 @@ export class GameState {
     }
 
 }
-
-export default GameState;
