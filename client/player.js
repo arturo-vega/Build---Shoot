@@ -141,15 +141,15 @@ export class Player {
     }
 
     setLookDirection() {
-        if (this.mouseX > 0 && !this.player.playerLookingRight) {
-            this.player.playerLookingRight = true;
-            this.player.playerLookingLeft = false;
-            this.player.lookDirection = 'right';
+        if (this.mouseX > 0 && !this.playerLookingRight) {
+            this.playerLookingRight = true;
+            this.playerLookingLeft = false;
+            this.lookDirection = 'right';
             this.player.rotateY(Math.PI);
-        } else if (this.mouseX < 0 && !this.player.playerLookingLeft) {
-            this.player.playerLookingLeft = true;
-            this.player.playerLookingRight = false;
-            this.player.lookDirection = 'left';
+        } else if (this.mouseX < 0 && !this.playerLookingLeft) {
+            this.playerLookingLeft = true;
+            this.playerLookingRight = false;
+            this.lookDirection = 'left';
             this.player.rotateY(Math.PI);
         }
     }
