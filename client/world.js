@@ -35,6 +35,7 @@ export class World {
         if (!this.isValidSpot(x, y)) return null;
 
         if (playerBB) {
+            console.log(playerBB);
             const ghostBlock = this.blockGhosts.get(key);
             if (ghostBlock && playerBB.intersectsBox(ghostBlock.boundingBox)) {
                 return null;

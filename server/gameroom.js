@@ -50,7 +50,11 @@ export class GameRoom {
         console.log(this.gameState.teamPopulation);
 
         this.players.set(socketId, {
-            ...playerData,
+            playerName: playerData.playerName,
+            position: { x: 0, y: 0, z: 0 },
+            velocity: { x: 0, y: 0, z: 0 },
+            health: 100,
+            id: playerData.id,
             joinedAt: Date.now(),
             lastUpdate: performance.now(),
             playerTeam: team

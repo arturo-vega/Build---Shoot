@@ -32,7 +32,7 @@ function App() {
                 setBlueScore(window.gameInstance.gameState.teamScore.blue);
                 setGameTime(window.gameInstance.gameState.timeRemaining);
 
-                const weapon = window.gameInstance.player.itemNames[window.gameInstance.player.currentItemIndex];
+                const weapon = window.gameInstance.controls.itemNames[window.gameInstance.player.currentItemIndex];
                 setCurrentWeapon(weapon);
 
             }

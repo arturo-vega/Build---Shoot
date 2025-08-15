@@ -1,12 +1,17 @@
 import * as THREE from 'three';
 
 export class Item {
-    constructor(type, scene, world, player, game) {
+    constructor(type, scene, world, camera, game, player) {
         this.type = type;
         this.scene = scene;
         this.world = world;
-        this.player = player;
+        this.camera = camera;
         this.game = game;
+        this.player = player;
+        this.mouseRaycaster = new THREE.Raycaster();
+        this.previousMousePosition = { x: 10, y: 10 };
+        this.currentMousePosition = { x: 0, y: 0 };
+        this.ghostBlockOn = false;
     }
 
     use() {
@@ -28,8 +33,8 @@ export class Item {
 
     placeBlock() {
         const intersectPoint = this.getRayPlaneIntersection(
-            this.player.camera,
-            this.player.mouseRaycaster.ray.direction
+            this.camera,
+            this.mouseRaycaster.ray.direction
         );
 
         const x = Math.floor(intersectPoint.x);
@@ -40,8 +45,8 @@ export class Item {
 
     removeBlock() {
         const intersectPoint = this.getRayPlaneIntersection(
-            this.player.camera,
-            this.player.mouseRaycaster.ray.direction
+            this.camera,
+            this.mouseRaycaster.ray.direction
         );
 
         const x = Math.floor(intersectPoint.x);
@@ -56,8 +61,8 @@ export class Item {
 
     castRay(damage) {
         const intersectPoint = this.getRayPlaneIntersection(
-            this.player.camera,
-            this.player.mouseRaycaster.ray.direction
+            this.camera,
+            this.mouseRaycaster.ray.direction
         );
 
         const rayDirection = new THREE.Vector3(
@@ -158,5 +163,30 @@ export class Item {
         );
 
         return intersectionPoint;
+    }
+
+    updateGhost(mouse, itemName) {
+        this.mouseRaycaster.setFromCamera(mouse, this.camera);
+        this.previousMousePosition = this.currentMousePosition;
+        this.currentMousePosition = { x: Math.floor(mouse.x), y: Math.floor(mouse.y) };
+        const intersectionPoint = this.getRayPlaneIntersection(this.camera, this.mouseRaycaster.ray.direction);
+        this.currentMousePosition.x = Math.floor(intersectionPoint.x);
+        this.currentMousePosition.y = Math.floor(intersectionPoint.y);
+
+        if (
+            (!this.mouseInSameSpot(this.previousMousePosition, this.currentMousePosition) || !this.ghostBlockOn) &&
+            (this.type === 'placer' || this.type === 'remover')
+        ) {
+            this.world.removeBlock(this.previousMousePosition.x, this.previousMousePosition.y, 'ghost');
+            this.world.blockGhost(Math.floor(intersectionPoint.x), Math.floor(intersectionPoint.y), this.player.playerBB, itemName);
+            this.ghostBlockOn = true;
+        } else if (this.type === 'weapon' || this.player.isDead) {
+            this.world.removeBlock(this.previousMousePosition.x, this.previousMousePosition.y, 'ghost');
+            this.ghostBlockOn = false;
+        }
+    }
+
+    mouseInSameSpot(previousMousePosition, currentMousePosition) {
+        return previousMousePosition.x === currentMousePosition.x && previousMousePosition.y === currentMousePosition.y;
     }
 }

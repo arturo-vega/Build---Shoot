@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { GLTFLoader } from '../node_modules/three/examples/jsm/loaders/GLTFLoader';
-import { OtherPlayer } from './otherplayer.js';
 import { Player } from './player.js';
 import { Projectiles } from './projectiles.js';
 import { World } from './world.js';
 import { GameState } from '../shared/gamestate.js';
+import { Controls } from './controls.js'
+import { Item } from './item.js'
 
 
 // CHANGE CLIENT SIDE PLAYER UPDATES TO socket.volatile.emit
@@ -60,6 +61,7 @@ export class Game {
         this.initializeGame();
     }
 
+
     async initializeGame() {
         await this.getAssignedTeam();
         console.log(`Spawnpoint: ${this.spawnPoint}`);
@@ -73,13 +75,12 @@ export class Game {
 
         for (const player of this.otherPlayers) {
             let otherPlayerModel = await this.loadPlayerModel(player[1].playerTeam);
-
             if (!this.otherPlayers.has(player.socketId)) {
-                const newPlayer = new OtherPlayer(
+                const newPlayer = new Player(
                     this.scene,
                     this.world,
                     player[1].velocity,
-                    player[1].position,
+                    player[1].spawnPoint,
                     player[1].health || 100,
                     this.listener,
                     player[1].playerName,
@@ -91,10 +92,7 @@ export class Game {
                 this.otherPlayers.set(player[1].id, newPlayer);
             }
         }
-
-        // creates a class to handle all projectiles in the world
         this.projectiles = new Projectiles(this.scene);
-
         this.scene.add(this.camera);
 
         // sun light
@@ -104,7 +102,6 @@ export class Game {
 
         const light = new THREE.AmbientLight(0x4A6A8C); // soft white light
         this.scene.add(light);
-
         this.loadSkyBox();
 
         // time stamp for interpolation
@@ -119,6 +116,18 @@ export class Game {
         this.socket.off('initialWorldState');
         this.socket.off('initialPlayerStates');
         this.socket.off('teamAssigned');
+
+        this.items = [
+            new Item('placer', this.scene, this.world, this.camera, this, this.player),
+            new Item('remover', this.scene, this.world, this.camera, this, this.player),
+            new Item('weapon', this.scene, this.world, this.camera, this, this.player)
+        ];
+
+        this.controls = new Controls(this.camera, this, this.items, this.player, this.world);
+
+        this.items.forEach((item) => {
+            item.mouseRaycaster = this.controls.mouseRaycaster;
+        });
 
         this.animate();
     }
@@ -242,16 +251,15 @@ export class Game {
                 const player = new Player(
                     this.scene,
                     this.world,
-                    this.camera,
+                    { x: 0, y: 0, z: 0 }, // velocity
                     this.spawnPoint,
-                    this,
+                    100, //health
                     this.listener,
                     this.playerName,
                     this.playerTeam,
                     model,
                     this.socket.id
                 );
-
                 resolve(player);
             } catch (error) {
                 console.error("Failed to load player", error);
@@ -265,11 +273,11 @@ export class Game {
         model.userData
 
         if (!this.otherPlayers.has(playerData.id)) {
-            const newPlayer = new OtherPlayer(
+            const newPlayer = new Player(
                 this.scene,
                 this.world,
-                new THREE.Vector2().copy(playerData.velocity),
-                new THREE.Vector2().copy(playerData.position),
+                new THREE.Vector3().copy(playerData.velocity),
+                new THREE.Vector3().copy(playerData.position),
                 playerData.health || 100,
                 this.listener,
                 playerData.playerName,
@@ -377,13 +385,6 @@ export class Game {
         });
     }
 
-    /*id: socket.id,
-                position: updateData.position,
-                velocity: updateData.velocity,
-                health: updateData.health,
-                lookDirection: updateData.lookDirection;
-                timestamp: updateData.timestamp */
-
     updateOtherPlayerPosition(updateData, player) {
         player.position = updateData.position;
         player.velocity = updateData.velocity;
@@ -431,8 +432,6 @@ export class Game {
 
     sendPVPInfo() {
         if (this.player.didDamage) {
-            console.log('Sent player damage info');
-            // send all the pvp flags from the player
             this.socket.emit('playerHit', {
                 playerId: this.player.playerDamaged,
                 damage: this.player.damageDealt,
@@ -444,7 +443,6 @@ export class Game {
         }
 
         if (this.player.fired) {
-            // send information if block was damaged to calculate beam distance
             if (this.world.blockDamaged) {
                 this.socket.emit('playerFiredDamagedBlock', {
                     rayDirection: {
@@ -461,7 +459,6 @@ export class Game {
                     }
                 });
             }
-            // send information if a block wasn't damaged when player fired
             else {
                 this.socket.emit('playerFired', {
                     rayDirection: {
@@ -505,9 +502,11 @@ export class Game {
         const currentTime = performance.now();
         const deltaTime = (currentTime - this.lastUpdateTime) / 500;
 
-        this.caluclateFps(currentTime);
+        this.controls.update();
 
+        this.caluclateFps(currentTime);
         this.player.update(deltaTime);
+        this.player.mouseX = this.controls.mouse.x;
         this.world.update();
 
         // sends updates at constant rate rather than every frame at the speed of update rate
@@ -543,7 +542,6 @@ export class Game {
         this.renderer.render(this.scene, this.camera);
     }
 
-    // updates all the other players in the otherPlayers map
     updateOtherPlayers(deltaTime) {
         for (const player of this.otherPlayers) {
             player[1].update(deltaTime);
