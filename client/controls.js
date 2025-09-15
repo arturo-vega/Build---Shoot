@@ -20,6 +20,7 @@ export class Controls {
             'Weapon'
         ];
 
+        this.mouseHeld = false;
         this.keys = {};
         this.setupControls();
     }
@@ -65,8 +66,10 @@ export class Controls {
             }
 
             if (this.keys['1']) this.switchItem(0);
-            else if (this.keys['2']) this.switchItem(1);
-            else if (this.keys['3']) this.switchItem(2);
+            if (this.keys['2']) this.switchItem(1);
+            if (this.keys['3']) this.switchItem(2);
+
+            if (this.mouseHeld) this.useItem();
         } else {
             this.player.applyFriction();
         }
@@ -80,7 +83,9 @@ export class Controls {
             this.keys[e.key] = false;
         });
         window.addEventListener('mousemove', this.onMouseMove.bind(this), true);
-        window.addEventListener('click', this.onClick.bind(this), false);
+
+        window.addEventListener('mousedown', this.onClick.bind(this), false);
+        window.addEventListener('mouseup', this.onMouseRelease.bind(this), false);
     }
 
     onMouseMove(event) {
@@ -89,7 +94,11 @@ export class Controls {
     }
 
     onClick() {
-        if (!this.player.isDead) this.useItem();
+        this.mouseHeld = true;
+    }
+
+    onMouseRelease() {
+        this.mouseHeld = false;
     }
 
     useItem() {
@@ -97,6 +106,7 @@ export class Controls {
         if (this.currentItemIndex === 2) {
             this.player.playSound('shot');
             this.player.fired = true;
+            this.mouseHeld = false;
         }
     }
 

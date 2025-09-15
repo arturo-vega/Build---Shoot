@@ -17,18 +17,13 @@ export class Player {
 
         this.maxVelocity = 6;
         this.minVelocity = -6;
-        this.terminalVelocity = -15;
+        this.terminalVelocity = -30;
         this.friction = 0.25;
-        this.jumpSpeed = 20;
-        this.gravity = -0.5;
+        this.jumpSpeed = 10;
+        this.gravity = -10;
         this.acceleration = 0.5;
         this.respawnTimer = 0;
         this.isDead = false;
-
-        // will use this for items
-        this.wandCharge = 100;
-        this.shovelCharge = 50;
-        this.blocksOwned = 50;
 
         // pvp info
         this.didDamage = false;
@@ -36,6 +31,22 @@ export class Player {
         this.damageDealt = 0;
         this.playerDamaged = null;
         this.fired = false;
+
+        // item info
+        this.maxWandCharge = 100;
+        this.wandCharge = this.maxWandCharge;
+        this.wandDamage = 20;
+        this.wandChargeUsed = 40;
+        this.wandChargeRate = 20;
+
+        this.maxPlaceCharge = 100;
+        this.placeCharge = this.maxPlaceCharge;
+        this.placeChargeRate = 120;
+        this.blocksOwned = 50;
+
+        this.maxRemoveCharge = 100;
+        this.removeCharge = this.maxRemoveCharge;
+        this.removeChargeRate = 40;
 
         // direction
         this.playerLookingRight = true;
@@ -102,12 +113,12 @@ export class Player {
         this.playerBB.setFromCenterAndSize(playerPosition, this.initialBBSize);
     }
 
-    applyGravity() {
+    applyGravity(deltaTime) {
         if (!this.onGround) {
             if (this.velocity.y < this.terminalVelocity) {
                 this.velocity.y = this.terminalVelocity;
             } else {
-                this.velocity.y += this.gravity;
+                this.velocity.y += this.gravity * deltaTime;
             }
         }
     }
@@ -249,7 +260,7 @@ export class Player {
 
     update(deltaTime) {
         this.checkGroundStatus();
-        this.applyGravity();
+        this.applyGravity(deltaTime);
         this.applyFriction();
         this.moveHorizontally(deltaTime);
         this.moveVertically(deltaTime);
@@ -260,5 +271,35 @@ export class Player {
         this.animate();
         this.player.position.set(this.position.x, this.position.y, this.position.z);
         this.updateBoundingBox();
+
+        if (this.player.position.y < this.world.deathFloor) {
+            this.isDead = true;
+            this.health = 0;
+        }
+
+        // update items
+        if (this.wandCharge < this.maxWandCharge) {
+            this.wandCharge += this.wandChargeRate * deltaTime;
+        }
+
+        if (this.wandCharge > this.maxWandCharge) {
+            this.wandCharge = this.maxWandCharge;
+        }
+
+        if (this.placeCharge < this.maxPlaceCharge) {
+            this.placeCharge += this.placeChargeRate * deltaTime;
+        }
+
+        if (this.placeCharge > this.maxPlaceCharge) {
+            this.placeCharge = this.maxPlaceCharge;
+        }
+
+        if (this.removeCharge < this.maxRemoveCharge) {
+            this.removeCharge += this.removeChargeRate * deltaTime;
+        }
+
+        if (this.removeCharge > this.maxRemoveCharge) {
+            this.removeCharge = this.maxRemoveCharge;
+        }
     }
 }

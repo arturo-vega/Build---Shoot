@@ -17,6 +17,8 @@ export class World {
         this.lastBlockModified = { x: 0, y: 0 };
         this.damagedBlockHealth = 100;
 
+        this.deathFloor = -10;
+
         for (const [key, blockData] of worldState) {
 
             const block = new Block(blockData.x, blockData.y, blockData.type, blockData.health, this.listener);
@@ -153,7 +155,7 @@ export class World {
 
         if (currentItem == 'Placer') {
             blockGhost.material.color.setHex(
-                isSpotEmpty && doesNotIntersectPlayer ? 0x98fb98 : 0xdc143c //green if true red if false
+                isSpotEmpty && doesNotIntersectPlayer && y > this.deathFloor ? 0x98fb98 : 0xdc143c //green if true red if false
             );
         }
         else if (currentItem == 'Remover') {
@@ -170,7 +172,7 @@ export class World {
     isValidSpot(x, y) {
         const key = `${x},${y}`
         const block = this.blocks.get(key);
-        if (block || !this.adjacentBlocks(x, y)) return false;
+        if (block || !this.adjacentBlocks(x, y) || y <= this.deathFloor) return false;
         return true;
     }
 

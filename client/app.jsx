@@ -7,9 +7,10 @@ import io from 'socket.io-client';
 import { Game } from './game.js';
 
 function App() {
-    // in game UI
     const [playerHealth, setPlayerHealth] = useState(100);
-    const [currentWeapon, setCurrentWeapon] = useState('Pistol');
+    const [currentWeapon, setCurrentWeapon] = useState('Placer', 50, 100, 25, 25);
+    const [currentBlocks, setCurrentBlocks] = useState(50);
+    const [itemCharge, setItemCharge] = useState(0);
     const [gameFPS, setCurrentFPS] = useState(0);
     const [redScore, setRedScore] = useState(0);
     const [blueScore, setBlueScore] = useState(0);
@@ -32,8 +33,26 @@ function App() {
                 setBlueScore(window.gameInstance.gameState.teamScore.blue);
                 setGameTime(window.gameInstance.gameState.timeRemaining);
 
-                const weapon = window.gameInstance.controls.itemNames[window.gameInstance.player.currentItemIndex];
+                const weapon = window.gameInstance.controls.itemNames[window.gameInstance.controls.currentItemIndex];
+
+                let charge;
+                switch (weapon) {
+                    case 'Placer':
+                        charge = window.gameInstance.player.placeCharge;
+                        break;
+                    case 'Remover':
+                        charge = window.gameInstance.player.removeCharge
+                        break;
+                    case 'Weapon':
+                        charge = window.gameInstance.player.wandCharge;
+                        break;
+                }
+
+                const numBlocks = window.gameInstance.player.blocksOwned;
+
                 setCurrentWeapon(weapon);
+                setCurrentBlocks(numBlocks);
+                setItemCharge(charge);
 
             }
         }, 100); // update UI 10 times per second
@@ -98,6 +117,7 @@ function App() {
         socket.on('roomJoined', async (roomData) => {
             console.log('Joined room:', roomData);
             await startGame();
+            console.log("Got game");
         });
 
         socket.on('roomFull', () => {
@@ -117,6 +137,7 @@ function App() {
         socket.on('roomCreated', async (roomData) => {
             console.log('Room created', roomData);
             await startGame();
+            console.log("Got game");
         });
     };
 
@@ -152,7 +173,7 @@ function App() {
         return (
             <div className="game-hud">
                 <HealthBar health={playerHealth} />
-                <WeaponDisplay weapon={currentWeapon} />
+                <WeaponDisplay weapon={currentWeapon} numBlocks={currentBlocks} itemCharge={itemCharge} />
                 <FPSCounter fps={gameFPS} />
                 <GameInfo blueScore={blueScore} redScore={redScore} gameTime={gameTime} />
                 <button
@@ -167,8 +188,10 @@ function App() {
         <div className="menu-container">
             <div className="menu-content">
                 <h1>Facing Worlds</h1>
+                {!socket ? (
 
-                {!socket ? ( // if no socket send to main menu
+                    // if no socket send to main menu
+
                     <div className="main-menu">
                         <div className="input-group">
                             <label>Player Name:</label>
@@ -205,7 +228,11 @@ function App() {
                             </div>
                         )}
                     </div>
-                ) : ( // if socket send them to room menu
+
+                ) : (
+
+                    // if socket send them to room menu
+
                     <div className="room-menu">
                         <h2>Welcome, {playerName}!</h2>
 

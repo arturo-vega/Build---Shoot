@@ -16,8 +16,11 @@ export class Game {
         this.socket = socket;
         this.playerName = playerName;
         this.playerTeam;
-        this.deathFloor = -10;
+        this.cameraMinY = 3;
         this.spawnPoint;
+        // for communication with server
+        this.updateRate = 25; // milliseconds
+        this.lastUpdateSent = 0;
 
         this.otherPlayers = new Map();
         this.gameModels = new Map();
@@ -64,10 +67,7 @@ export class Game {
 
     async initializeGame() {
         await this.getAssignedTeam();
-        console.log(`Spawnpoint: ${this.spawnPoint}`);
         this.otherPlayers = await this.getOtherPlayers();
-        console.log("otherPlayers map");
-        console.log(this.otherPlayers);
         // world needs to be loaded first so it can get the blocks transmitted when the server transmits them
         this.world = await this.loadWorld();
         const playerModel = await this.loadPlayerModel(this.playerTeam);
@@ -107,10 +107,6 @@ export class Game {
         // time stamp for interpolation
         this.lastUpdateTime = performance.now();
 
-        // for communication with server
-        this.updateRate = 25; // milliseconds
-        this.lastUpdateSent = 0;
-
         this.setupSocketListeners();
 
         this.socket.off('initialWorldState');
@@ -130,6 +126,8 @@ export class Game {
         });
 
         this.animate();
+
+        console.log("Starting game")
     }
 
     getAssignedTeam() {
@@ -518,7 +516,7 @@ export class Game {
         this.updateOtherPlayers(deltaTime);
 
         // update camera to follow player
-        this.camera.position.set(this.player.position.x, Math.max(this.player.position.y + 3, this.deathFloor), 25);
+        this.camera.position.set(this.player.position.x, Math.max(this.player.position.y + 3, this.cameraMinY), 25);
         this.camera.lookAt(this.player.position.x, this.player.position.y, 0);
 
         this.sendPVPInfo();

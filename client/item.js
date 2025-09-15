@@ -12,6 +12,7 @@ export class Item {
         this.previousMousePosition = { x: 10, y: 10 };
         this.currentMousePosition = { x: 0, y: 0 };
         this.ghostBlockOn = false;
+
     }
 
     use() {
@@ -23,8 +24,7 @@ export class Item {
                 this.removeBlock();
                 break;
             case 'weapon':
-                const damage = 20;
-                this.castRay(damage);
+                this.castRay();
                 break;
             default:
                 console.error('Unknown item type: ', this.type);
@@ -32,6 +32,10 @@ export class Item {
     }
 
     placeBlock() {
+        if (this.player.placeCharge < this.player.maxPlaceCharge || this.player.blocksOwned < 1) {
+            return;
+        }
+
         const intersectPoint = this.getRayPlaneIntersection(
             this.camera,
             this.mouseRaycaster.ray.direction
@@ -40,10 +44,18 @@ export class Item {
         const x = Math.floor(intersectPoint.x);
         const y = Math.floor(intersectPoint.y);
 
-        this.world.createBlock(x, y, this.player.playerBB);
+        if (this.world.isValidSpot(x, y)) {
+            this.world.createBlock(x, y, this.player.playerBB);
+            this.player.placeCharge = 0;
+            this.player.blocksOwned -= 1;
+        }
     }
 
     removeBlock() {
+        if (this.player.removeCharge < this.player.maxRemoveCharge) {
+            return;
+        }
+
         const intersectPoint = this.getRayPlaneIntersection(
             this.camera,
             this.mouseRaycaster.ray.direction
@@ -56,10 +68,36 @@ export class Item {
 
         if (block && block.type != 'steel') {
             this.world.removeBlock(x, y);
+            this.player.removeCharge = 0;
+            this.player.blocksOwned += 1;
         }
     }
 
-    castRay(damage) {
+    updateWandCharge() {
+        this.player.wandCharge -= this.player.wandChargeUsed;
+        if (this.player.wandCharge < 0) {
+            this.player.wandCharge = 0;
+        }
+    }
+
+    calculateDamage() {
+        if (this.player.wandCharge < this.player.wandChargeUsed) {
+            let underflow = this.player.wandCharge - this.player.wandChargeUsed
+            let damage = this.player.wandChargeUsed + underflow
+            return damage
+        }
+
+        else {
+            return this.player.wandChargeUsed
+        }
+
+    }
+
+    castRay() {
+        if (this.player.wandCharge < this.player.wandChargeUsed) {
+            return;
+        }
+
         const intersectPoint = this.getRayPlaneIntersection(
             this.camera,
             this.mouseRaycaster.ray.direction
@@ -90,21 +128,6 @@ export class Item {
                 let object = intersects[i].object;
                 let intesectPoint = intersects[i].point;
 
-                // creates the beam from the gun -------------------------
-                // this is for when the beam needs to be truncated because it intersected with an object
-                // sends player and coordinates of the object
-                this.game.projectiles.createBeam(
-                    rayDirection,
-                    { x: this.player.position.x, y: this.player.position.y }, // player position
-                    { x: intesectPoint.x, y: intesectPoint.y } // object position
-                );
-
-                const block = this.world.getBlockAt(object.position.x, object.position.y);
-                if (block) {
-                    this.world.damageBlock(block.x, block.y, damage);
-                    return;
-                }
-
                 let objectParent = object;
                 while (objectParent.parent.type !== 'Scene') {
                     objectParent = objectParent.parent;
@@ -117,21 +140,41 @@ export class Item {
                 if (this.player.id == objectParent.userData.id) {
                     continue;
                 }
-                const otherPlayer = this.game.otherPlayers.get(objectParent.userData.id);
-                // rudimentary player damage
-                if (otherPlayer) {
 
-                    otherPlayer.damage(damage, rayDirection);
+                // creates the beam from the gun -------------------------
+                // this is for when the beam needs to be truncated because it intersected with an object
+                // sends player and coordinates of the object
+                this.game.projectiles.createBeam(
+                    rayDirection,
+                    { x: this.player.position.x, y: this.player.position.y }, // player position
+                    { x: intesectPoint.x, y: intesectPoint.y } // object position
+                );
+
+                const block = this.world.getBlockAt(object.position.x, object.position.y);
+                if (block) {
+                    this.world.damageBlock(block.x, block.y, this.calculateDamage());
+                    this.updateWandCharge();
+                    return;
+                }
+                const otherPlayer = this.game.otherPlayers.get(objectParent.userData.id);
+
+                // rudimentary player damage
+                if (otherPlayer && otherPlayer.playerTeam != this.player.playerTeam) {
+
+                    otherPlayer.damage(this.calculateDamage(), rayDirection);
                     this.player.didDamage = true;
-                    this.player.damageDealt = damage;
+                    this.player.damageDealt = this.calculateDamage();
                     this.player.playerDamaged = otherPlayer.id;
                 }
+
+                this.updateWandCharge();
                 return;
             }
         } else {
             // creates the beam from the gun -------------------------
             // this is for when the beam does not intersect so extends its full length
             this.game.projectiles.createBeam(rayDirection, { x: this.player.position.x, y: this.player.position.y });
+            this.updateWandCharge();
         }
 
     }

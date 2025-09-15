@@ -18,7 +18,7 @@ export class Projectiles {
             beamLength = Math.sqrt(Math.pow((x2 - x1), 2) + Math.pow((y2 - y1), 2));
         }
         //radius top, radius bottom, height (length), radial segments (how 'round' it is)
-        const geometry = new THREE.CylinderGeometry(0.1, 0.1, beamLength, 3);
+        const geometry = new THREE.CylinderGeometry(0.2, 0.2, beamLength, 3);
         const material = new THREE.MeshBasicMaterial({ color: 0xffff00 });
         const cylinder = new THREE.Mesh(geometry, material);
 
