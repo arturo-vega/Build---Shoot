@@ -16,7 +16,9 @@ function App() {
     const [blueScore, setBlueScore] = useState(0);
     const [gameTime, setGameTime] = useState(600);
 
-    // 'menu', 'connecting', 'playing'
+    const [loadingProcess, setLoadingProcess] = useState(0);
+    const [loadingStatus, setLoadingStatus] = useState('');
+    // 'menu', 'connecting', 'loading', 'playing'
     const [gameState, setGameState] = useState('');
     const [socket, setSocket] = useState(null);
     const [serverUrl, setServerUrl] = useState('http://localhost:3000');
@@ -142,11 +144,16 @@ function App() {
     };
 
     const startGame = async () => {
-        setGameState('playing');
+        setGameState('loading');
+        setLoadingProcess(0);
 
         try {
-            const game = new Game(socket, playerName);
+            const game = new Game(socket, playerName, setLoadingProcess, setLoadingStatus);
             window.gameInstance = game;
+
+            await game.initializationFinished;
+
+            setGameState('playing');
             //game.animate();
         } catch (error) {
             console.error('Game initialization failed:', error);
@@ -168,6 +175,17 @@ function App() {
         setConnectionError('');
         setAvailableRooms([]);
     };
+
+    if (gameState == 'loading') {
+        return (
+            <div className="loading-screen">
+                <h2>{loadingStatus}</h2>
+                <div className='loading-label'>
+                    <div className="loading-bar" style={{ width: `${loadingProcess}%` }}></div>
+                </div>
+            </div>
+        );
+    }
 
     if (gameState == 'playing') {
         return (

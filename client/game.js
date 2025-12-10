@@ -12,9 +12,12 @@ import { Item } from './item.js'
 // WILL NOT SEND BUFFERED INFORMATION IS CONNECTION IS UNSTEADY!
 
 export class Game {
-    constructor(socket, playerName) {
+    constructor(socket, playerName, setLoadingProcess, setLoadingStatus) {
         this.socket = socket;
         this.playerName = playerName;
+        this.setLoadingProcess = setLoadingProcess;
+        this.setLoadingStatus = setLoadingStatus;
+
         this.playerTeam;
         this.cameraMinY = 3;
         this.spawnPoint;
@@ -31,7 +34,7 @@ export class Game {
             redRobot: './models/redrobot.gltf'
         };
         this.modelList = {
-
+            earth: './models/earth/earth.gltf'
         }
 
         this.loadedModels = new Map();
@@ -61,73 +64,114 @@ export class Game {
         }
         this.renderer.setSize(this.windowWidth, this.windowHeight);
 
+        this.initializationFinished = new Promise((resolve, reject) => {
+            this.resolveInitilization = resolve;
+            this.rejectInitilization = reject;
+        });
+
         this.initializeGame();
     }
 
 
     async initializeGame() {
-        await this.getAssignedTeam();
-        this.otherPlayers = await this.getOtherPlayers();
-        // world needs to be loaded first so it can get the blocks transmitted when the server transmits them
-        this.world = await this.loadWorld();
-        const playerModel = await this.loadPlayerModel(this.playerTeam);
-        this.player = await this.loadPlayer(playerModel);
+        try {
+            const initSteps = 6;
+            let currentStep = 0;
 
-        for (const player of this.otherPlayers) {
-            let otherPlayerModel = await this.loadPlayerModel(player[1].playerTeam);
-            if (!this.otherPlayers.has(player.socketId)) {
-                const newPlayer = new Player(
-                    this.scene,
-                    this.world,
-                    player[1].velocity,
-                    player[1].spawnPoint,
-                    player[1].health || 100,
-                    this.listener,
-                    player[1].playerName,
-                    player[1].playerTeam,
-                    otherPlayerModel,
-                    player[1].id
-                );
+            const updateProcess = (status) => {
+                currentStep++;
+                this.setLoadingProcess((currentStep / initSteps) * 100);
+                this.setLoadingStatus(status);
+            };
 
-                this.otherPlayers.set(player[1].id, newPlayer);
+
+            updateProcess('Connecting to server...');
+            await this.getAssignedTeam();
+
+            updateProcess('Loading other players...');
+            this.otherPlayers = await this.getOtherPlayers();
+
+            updateProcess('Getting world...');
+            this.world = await this.loadWorld();
+
+            updateProcess('Loading models...');
+            const playerModel = await this.loadPlayerModel(this.playerTeam);
+            this.player = await this.loadPlayer(playerModel);
+
+            for (const player of this.otherPlayers) {
+                let otherPlayerModel = await this.loadPlayerModel(player[1].playerTeam);
+                if (!this.otherPlayers.has(player.socketId)) {
+                    const newPlayer = new Player(
+                        this.scene,
+                        this.world,
+                        player[1].velocity,
+                        player[1].spawnPoint,
+                        player[1].health || 100,
+                        this.listener,
+                        player[1].playerName,
+                        player[1].playerTeam,
+                        otherPlayerModel,
+                        player[1].id
+                    );
+
+                    this.otherPlayers.set(player[1].id, newPlayer);
+                }
             }
+
+            this.loadedModels = await this.loadAllModels();
+            const earthModel = this.loadedModels.get('earth')
+            console.log(earthModel);
+            earthModel.position.set(-600, -800, -1300);
+            earthModel.scale.set(10, 10, 10);
+            this.scene.add(earthModel);
+
+            updateProcess('Setting up the game...');
+            this.projectiles = new Projectiles(this.scene);
+            this.scene.add(this.camera);
+
+            // sun light
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            directionalLight.position.set(-1, 1, 1);
+            this.scene.add(directionalLight);
+
+            const light = new THREE.AmbientLight(0x4A6A8C); // soft white light
+            this.scene.add(light);
+            this.loadSkyBox();
+
+            // time stamp for interpolation
+            this.lastUpdateTime = performance.now();
+
+            this.setupSocketListeners();
+
+            this.socket.off('initialWorldState');
+            this.socket.off('initialPlayerStates');
+            this.socket.off('teamAssigned');
+
+            this.items = [
+                new Item('placer', this.scene, this.world, this.camera, this, this.player),
+                new Item('remover', this.scene, this.world, this.camera, this, this.player),
+                new Item('weapon', this.scene, this.world, this.camera, this, this.player)
+            ];
+
+            this.controls = new Controls(this.camera, this, this.items, this.player, this.world);
+
+            this.items.forEach((item) => {
+                item.mouseRaycaster = this.controls.mouseRaycaster;
+            });
+
+            updateProcess('Done!');
+            console.log("Game initilized successfully");
+
+            this.resolveInitilization();
+
+
+            this.animate();
+
+        } catch (error) {
+            console.error('Initilization error:', error);
+            this.rejectInitilization(error);
+            throw error;
         }
-        this.projectiles = new Projectiles(this.scene);
-        this.scene.add(this.camera);
-
-        // sun light
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
-        directionalLight.position.set(-1, 1, 1);
-        this.scene.add(directionalLight);
-
-        const light = new THREE.AmbientLight(0x4A6A8C); // soft white light
-        this.scene.add(light);
-        this.loadSkyBox();
-
-        // time stamp for interpolation
-        this.lastUpdateTime = performance.now();
-
-        this.setupSocketListeners();
-
-        this.socket.off('initialWorldState');
-        this.socket.off('initialPlayerStates');
-        this.socket.off('teamAssigned');
-
-        this.items = [
-            new Item('placer', this.scene, this.world, this.camera, this, this.player),
-            new Item('remover', this.scene, this.world, this.camera, this, this.player),
-            new Item('weapon', this.scene, this.world, this.camera, this, this.player)
-        ];
-
-        this.controls = new Controls(this.camera, this, this.items, this.player, this.world);
-
-        this.items.forEach((item) => {
-            item.mouseRaycaster = this.controls.mouseRaycaster;
-        });
-
-        this.animate();
-
-        console.log("Starting game")
     }
 
     getAssignedTeam() {
@@ -156,8 +200,8 @@ export class Game {
 
             for (const model of modelKeys) {
                 gltfLoader.load(this.modelList[model], (loadedModel) => {
-                    const newModel = loadedModel.scene;
-                    newModel.animations = loadedModel.animations;
+                    let newModel = new THREE.Object3D();
+                    newModel = loadedModel.scene;
                     modelMap.set(model, newModel);
                     loadedCount++;
 
