@@ -53,9 +53,13 @@ export class Game {
         this.scene = new THREE.Scene();
         this.listener = new THREE.AudioListener();
 
+        this.skyScene = new THREE.Scene();
+
         this.camera = new THREE.PerspectiveCamera(60, this.windowWidth / this.windowHeight);
         this.camera.add(this.listener);
         const canvas = document.querySelector('canvas.webgl');
+
+        this.skyCamera = new THREE.PerspectiveCamera(60, this.windowWidth / this.windowHeight);
 
         try {
             this.renderer = new THREE.WebGLRenderer({ canvas: canvas })
@@ -82,6 +86,7 @@ export class Game {
                 currentStep++;
                 this.setLoadingProcess((currentStep / initSteps) * 100);
                 this.setLoadingStatus(status);
+                console.log(currentStep);
             };
 
 
@@ -120,22 +125,61 @@ export class Game {
 
             this.loadedModels = await this.loadAllModels();
             const earthModel = this.loadedModels.get('earth')
-            console.log(earthModel);
-            earthModel.position.set(-600, -800, -1300);
-            earthModel.scale.set(10, 10, 10);
-            this.scene.add(earthModel);
+            earthModel.position.set(-300, -450, -500);
+            earthModel.scale.set(5, 5, 5);
+            earthModel.rotation.set(0, 0, 0);
+            this.skyScene.add(earthModel);
+
+            const innerAtmosphere = new THREE.Mesh(
+                new THREE.SphereGeometry(510, 32, 32),
+                new THREE.MeshBasicMaterial({
+                    color: 0x6699ff,
+                    transparent: true,
+                    opacity: 0.3,
+                    side: THREE.BackSide
+                })
+            );
+            innerAtmosphere.position.copy(earthModel.position);
+            this.skyScene.add(innerAtmosphere);
+
+            const outerAtmosphere = new THREE.Mesh(
+                new THREE.SphereGeometry(525, 32, 32),
+                new THREE.MeshBasicMaterial({
+                    color: 0x88ccff,
+                    transparent: true,
+                    opacity: 0.1,
+                    side: THREE.BackSide
+                })
+            );
+            outerAtmosphere.position.copy(earthModel.position);
+            this.skyScene.add(outerAtmosphere);
+
+            const sun = new THREE.Mesh(
+                new THREE.SphereGeometry(15, 32, 32),
+                new THREE.MeshBasicMaterial({
+                    color: 0xfffff0,
+                })
+            );
+
+            sun.position.set(400, 50, -800);
+            this.skyScene.add(sun);
 
             updateProcess('Setting up the game...');
             this.projectiles = new Projectiles(this.scene);
             this.scene.add(this.camera);
 
             // sun light
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
-            directionalLight.position.set(-1, 1, 1);
-            this.scene.add(directionalLight);
+            const skyAmbientLight = new THREE.AmbientLight(0x6699cc, 0.05); // Soft blue light
+            this.skyScene.add(skyAmbientLight);
 
-            const light = new THREE.AmbientLight(0x4A6A8C); // soft white light
-            this.scene.add(light);
+            const stageAmbientLight = new THREE.AmbientLight(0xffffff, 0.3); // Soft white light
+            this.scene.add(stageAmbientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            directionalLight.position.copy(sun.position);
+            this.scene.add(directionalLight);
+            this.skyScene.add(directionalLight);
+
             this.loadSkyBox();
 
             // time stamp for interpolation
@@ -540,6 +584,43 @@ export class Game {
         this.render();
     }
 
+    caluclateFps(currentTime) {
+        this.frameCount++;
+        this.timeElapsed += (currentTime - this.lastUpdateTime);
+        if (this.timeElapsed / 1000 >= 1) {
+            this.FPS = this.frameCount;
+            this.timeElapsed = 0;
+            this.frameCount = 0;
+        }
+    }
+
+    updateOtherPlayers(deltaTime) {
+        for (const player of this.otherPlayers) {
+            player[1].update(deltaTime);
+        }
+    }
+
+    loadSkyBox() {
+        const loader = new THREE.CubeTextureLoader();
+        loader.setPath('/skybox/');
+
+        const textureCube = loader.load([
+            // load order: right, left, top, bottom, front, back
+            'skyboxRT.png', 'skyboxLF.png',
+            'skyboxUP.png', 'skyboxDN.png',
+            'skyboxFT.png', 'skyboxBK.png'
+        ]);
+
+
+        this.skyScene.background = textureCube;
+
+        // environment map not used but could be used for reflecting materials off the skybox later
+        const material = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            envMap: textureCube
+        });
+    }
+
     update() {
         const currentTime = performance.now();
         const deltaTime = (currentTime - this.lastUpdateTime) / 500;
@@ -563,6 +644,8 @@ export class Game {
         this.camera.position.set(this.player.position.x, Math.max(this.player.position.y + 3, this.cameraMinY), 25);
         this.camera.lookAt(this.player.position.x, this.player.position.y, 0);
 
+        this.skyCamera.rotation.copy(this.camera.rotation);
+
         this.sendPVPInfo();
         this.sendBlockInformation();
         this.projectiles.update();
@@ -570,45 +653,13 @@ export class Game {
         this.lastUpdateTime = currentTime;
     }
 
-    caluclateFps(currentTime) {
-        this.frameCount++;
-        this.timeElapsed += (currentTime - this.lastUpdateTime);
-        if (this.timeElapsed / 1000 >= 1) {
-            this.FPS = this.frameCount;
-            this.timeElapsed = 0;
-            this.frameCount = 0;
-        }
-    }
-
     render() {
+        this.renderer.autoClear = false;
+        this.renderer.clear();
+        this.renderer.render(this.skyScene, this.skyCamera);
+
         this.renderer.render(this.scene, this.camera);
-    }
-
-    updateOtherPlayers(deltaTime) {
-        for (const player of this.otherPlayers) {
-            player[1].update(deltaTime);
-        }
-    }
-
-    loadSkyBox() {
-        const loader = new THREE.CubeTextureLoader();
-        loader.setPath('/skybox/');
-
-        const textureCube = loader.load([
-            // load order: right, left, top, bottom, front, back
-            'skyboxRT.png', 'skyboxLF.png',
-            'skyboxUP.png', 'skyboxDN.png',
-            'skyboxFT.png', 'skyboxBK.png'
-        ]);
-
-
-        this.scene.background = textureCube;
-
-        // environment map not used but could be used for reflecting materials off the skybox later
-        const material = new THREE.MeshBasicMaterial({
-            color: 0xffffff,
-            envMap: textureCube
-        });
+        this.renderer.autoClear = true;
     }
 
     cleanup() {
