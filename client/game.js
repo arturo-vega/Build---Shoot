@@ -12,11 +12,12 @@ import { Item } from './item.js'
 // WILL NOT SEND BUFFERED INFORMATION IS CONNECTION IS UNSTEADY!
 
 export class Game {
-    constructor(socket, playerName, setLoadingProcess, setLoadingStatus) {
+    constructor(socket, playerName, setLoadingProcess, setLoadingStatus, setGameState) {
         this.socket = socket;
         this.playerName = playerName;
         this.setLoadingProcess = setLoadingProcess;
         this.setLoadingStatus = setLoadingStatus;
+        this.setGameState = setGameState;
 
         this.playerTeam;
         this.cameraMinY = 3;
@@ -86,7 +87,6 @@ export class Game {
                 currentStep++;
                 this.setLoadingProcess((currentStep / initSteps) * 100);
                 this.setLoadingStatus(status);
-                console.log(currentStep);
             };
 
 
@@ -411,7 +411,7 @@ export class Game {
 
             const player = this.otherPlayers.get(playerId);
             // If the player ID isn't in the otherPlayers map then just assume that it's the player character
-            // Not a very good system, change this
+            // Not a very good system
             if (player) {
                 player.damage(rayDirection, amount);
             } else {
@@ -443,11 +443,25 @@ export class Game {
             )
         });
 
+        this.socket.on('playerRespawn', (playerid) => {
+            const otherPlayer = this.otherPlayers.get(playerid);
+            if (otherPlayer) {
+                otherPlayer.respawn();
+            }
+
+            if (playerid === this.socket.id) {
+                console.log("Respawning player");
+                this.setGameState('playing');
+                this.player.respawn();
+            }
+
+        });
+
         this.socket.on('playerLeft', (playerId) => {
-            const player = this.otherPlayers.get(playerId);
-            if (player) {
+            const otherPlayer = this.otherPlayers.get(playerId);
+            if (otherPlayer) {
                 console.log(`Player left: ${playerId}`);
-                this.scene.remove(player.player);
+                this.scene.remove(otherPlayer.player);
                 this.otherPlayers.delete(playerId);
             }
         });
@@ -578,12 +592,6 @@ export class Game {
         }, false);
     }
 
-    animate() {
-        requestAnimationFrame(() => this.animate());
-        this.update();
-        this.render();
-    }
-
     caluclateFps(currentTime) {
         this.frameCount++;
         this.timeElapsed += (currentTime - this.lastUpdateTime);
@@ -611,7 +619,6 @@ export class Game {
             'skyboxFT.png', 'skyboxBK.png'
         ]);
 
-
         this.skyScene.background = textureCube;
 
         // environment map not used but could be used for reflecting materials off the skybox later
@@ -621,9 +628,19 @@ export class Game {
         });
     }
 
+    animate() {
+        requestAnimationFrame(() => this.animate());
+        this.update();
+        this.render();
+    }
+
     update() {
         const currentTime = performance.now();
         const deltaTime = (currentTime - this.lastUpdateTime) / 500;
+
+        if (this.player.isDead) {
+            this.setGameState('dead');
+        }
 
         this.controls.update();
 

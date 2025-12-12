@@ -16,7 +16,7 @@ canvas.webgl {
     position: absolute;
     top: 0;
     left: 0;
-    z-index: 1;
+    z-index: 2;
 }
 
 #react-root {
@@ -234,11 +234,14 @@ canvas.webgl {
 .back-button {
     background: rgba(0, 0, 0, 0.7);
     color: white;
+    position: absolute;
+    left: 80%;
     border: none;
     padding: 0.5rem 1rem;
     border-radius: 4px;
     cursor: pointer;
     font-weight: bold;
+    z-index: 100;
 }
 
 .back-button:hover {
@@ -280,6 +283,8 @@ canvas.webgl {
     font-family: 'Arial', sans-serif;
     color: white;
     margin-bottom: 20px;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px black;
 }
 
 .loading-label {
@@ -352,28 +357,29 @@ canvas.webgl {
     text-shadow: 1px 1px 2px black;
 }
 
-/*Movement display styling*/
-.velocityguage-container {
-    position: absolute;
-    top: 20px;
-    right: 480px;
-    display: flex;
-    align-items: center;
-    background-color: rgba(0, 0, 0, 0.5);
-    padding: 10px;
-    border-radius: 10px;
-}
-
-.velocityguage-label {
-    margin-bottom: 5px;
+.respawn-label {
     font-weight: bold;
     text-shadow: 1px 1px 2px black;
+}
+
+.respawn-container {
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.5);
+    align-items: center;
+    display: flex;
+    left: 50%;
+    top: 50%;
+    width: 400px;
+    height: 300px;
+    padding: 20px;
+    font-size: large;
+    border-radius: 20px;
 }
 
 .game-info-container {
     position: absolute;
     top: 20px;
-    left: 400px;
+    left: 50%;
     display: flex;
     align-items: center;
     background-color: rgba(0, 0, 0, 0.5);
@@ -381,24 +387,43 @@ canvas.webgl {
     border-radius: 10px;
 }
 
+.scores-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 40px;
+}
+
 .blue-score-label {
     font-weight: bold;
-    color: blue;
-    text-shadow: 1px 1px 2px black;
-    font-size: 5ch
+    color: #4a9eff;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+    font-size: 3rem;
+}
+
+.time-label {
+    font-size: 0.9rem;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
 }
 
 .game-time-label {
+    font-size: 1.7rem;
+    color: white;
+    text-align: center;
     font-weight: bold;
-    text-shadow: 1px 1px 2px black;
-    font-size: 5ch
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
 }
 
 .red-score-label {
-    color: red;
+    color: #ff4a4a;
     font-weight: bold;
-    text-shadow: 1px 1px 2px black;
-    font-size: 5ch
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+    font-size: 3rem;
 }
 
 /* Weapon Display Styling */

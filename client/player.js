@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 
+const STARTING_BLOCKS = 50;
+
 export class Player {
     constructor(scene, world, velocity, spawnPoint, health, listener, playerName, playerTeam, player, id) {
         this.scene = scene;
@@ -11,7 +13,7 @@ export class Player {
         this.id = id;
         this.spawnPoint = spawnPoint;
         this.velocity = velocity || { x: 0, y: 0, z: 0 };
-        this.position = spawnPoint || { x: 0, y: 0, z: 0 };
+        this.position = { ...this.spawnPoint };
         this.health = health || 100;
         this.mouseX = new THREE.Vector2();
 
@@ -24,6 +26,7 @@ export class Player {
         this.acceleration = 0.5;
         this.respawnTimer = 0;
         this.isDead = false;
+        this.waitingForReaspawn = false;
 
         // pvp info
         this.didDamage = false;
@@ -42,7 +45,7 @@ export class Player {
         this.maxPlaceCharge = 100;
         this.placeCharge = this.maxPlaceCharge;
         this.placeChargeRate = 120;
-        this.blocksOwned = 50;
+        this.blocksOwned = STARTING_BLOCKS;
 
         this.maxRemoveCharge = 100;
         this.removeCharge = this.maxRemoveCharge;
@@ -239,7 +242,6 @@ export class Player {
     }
 
     damage(rayDirection, amount) {
-        console.log(this.velocity);
         this.health = this.health - amount;
         this.velocity.x += (rayDirection.x * 10);
         this.velocity.y += (rayDirection.y * 15);
@@ -255,7 +257,18 @@ export class Player {
         this.velocity.y += 20
         const zAngle = Math.random();
         zAngle > 0.5 ? this.velocity.z += 5 : this.velocity.z -= 5;
-        this.player.rotateX(Math.PI / 2);
+    }
+
+    respawn() {
+        this.isDead = false;
+        this.position = { ...this.spawnPoint };
+        console.log(this.spawnPoint);
+        console.log(this.position);
+        this.velocity.x = 0;
+        this.velocity.y = 0;
+        this.velocity.z = 0;
+        this.health = 100;
+        this.blocksOwned = STARTING_BLOCKS;
     }
 
     update(deltaTime) {

@@ -2,7 +2,7 @@ import { World } from './world.js';
 import { GameState } from '../shared/gamestate.js';
 
 export class GameRoom {
-    constructor(id, creatorName, maxPlayers = 8, gameType, gameTime) {
+    constructor(id, creatorName, maxPlayers = 8, gameType, gameTime, callbacks) {
         this.id = id;
         this.creatorName = creatorName;
         this.maxPlayers = maxPlayers;
@@ -15,16 +15,48 @@ export class GameRoom {
         this.gameType = gameType;
         this.gameTime = gameTime;
 
+        this.broadcastInterval = null;
+
         this.timeRemaining = this.gameTime;
         this.redTeamScore = 0;
         this.blueTeamScore = 0;
 
+        this.callbacks = callbacks || {};
+
         this.gameState.gameStart();
+
+        this.startGameLoop();
     }
 
+
+    startGameLoop() {
+        this.gameLoop = setInterval(() => {
+            if (this.callbacks.onGameStateUpdate) {
+                this.callbacks.onGameStateUpdate(this.gameStateUpdate());
+            }
+
+            // respawns
+            this.players.forEach((player) => {
+                if (player.isDead && player.respawn) {
+                    player.isDead = false;
+                    player.respawn = false;
+                    player.health = 100;
+
+                    console.log(`Respawning player ${player.playerName} ${player.id}`);
+
+                    // notify server about respawn
+                    if (this.callbacks.onPlayerRespawn) {
+                        this.callbacks.onPlayerRespawn(player.id);
+                    }
+                }
+            });
+        }, 500);
+    }
+
+
+
     gameStateUpdate() {
-        const gameUpdate =
-        {
+        const gameUpdate = {
             timeRemaining: this.gameState.timeRemaining,
             redTeamScore: this.gameState.teamScore.red,
             blueTeamScore: this.gameState.teamScore.blue,
@@ -57,7 +89,9 @@ export class GameRoom {
             id: playerData.id,
             joinedAt: Date.now(),
             lastUpdate: performance.now(),
-            playerTeam: team
+            playerTeam: team,
+            isDead: false,
+            respawn: false
         });
 
         this.lastActivity = Date.now();
@@ -79,13 +113,23 @@ export class GameRoom {
 
     updatePlayer(socketId, updateData) {
         const player = this.players.get(socketId);
-        if (player) {
-            Object.assign(player, updateData);
-            player.lastUpdate = performance.now();
-            this.lastActivity = Date.now();
-            return true;
+        if (!player) {
+            console.error(`Tried to update player with socketId ${socketId} but no player found.`);
+            return false;
         }
-        return false;
+
+        Object.assign(player, updateData);
+        player.lastUpdate = performance.now();
+        this.lastActivity = Date.now();
+
+        // only set timer when player first dies
+        if (player.health <= 0 && !player.isDead) {
+            player.isDead = true;
+
+            setTimeout(() => {
+                player.respawn = true;
+            }, this.gameState.respawnTime * 1000);
+        }
     }
 
     getPlayerCount() {
@@ -109,5 +153,12 @@ export class GameRoom {
             createdAt: this.createdAt,
             isFull: this.isFull()
         };
+    }
+
+    destroy() {
+        if (this.gameLoop) {
+            clearInterval(this.gameLoop);
+            this.gameLoop = null;
+        }
     }
 }

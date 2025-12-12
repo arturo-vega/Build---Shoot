@@ -53,6 +53,10 @@ function cleanupEmptyRooms() {
     for (const [roomId, room] of rooms.entries()) {
         if (room.isEmpty() && (now - room.lastActivity > ROOM_TIMEOUT)) {
             console.log(`Cleaning up empty room: ${roomId}`);
+            if (room.broadcastInterval) {
+                clearInterval(room.broadcastInterval);
+            }
+            room.destroy();
             rooms.delete(roomId);
         }
     }
@@ -75,7 +79,24 @@ io.on('connection', (socket) => {
 
     socket.on('createRoom', (data) => {
         const roomId = generateRoomId();
-        const room = new GameRoom(roomId, socket.playerName || data.playerName, 8, 'dm', 600);
+
+        const room = new GameRoom(
+            roomId,
+            socket.playerName || data.playerName,
+            8,
+            'dm',
+            600,
+            {
+                // call back for updates
+                onGameStateUpdate: (gameUpdate) => {
+                    io.to(roomId).emit('gameRoomUpdate', gameUpdate);
+                },
+
+                // call back for player respawns
+                onPlayerRespawn: (playerId) => {
+                    io.to(roomId).emit('playerRespawn', playerId);
+                }
+            });
 
         rooms.set(roomId, room);
 
@@ -98,11 +119,10 @@ io.on('connection', (socket) => {
             room: room.toJSON()
         });
 
+        // interval to update gamestate to players along with reoccuring events
         setInterval(() => {
             io.to(roomId).emit('gameStateUpdate', room.gameStateUpdate())
-        },
-            500
-        );
+        }, 500);
 
         // send info to the player that joined
         socket.emit('teamAssigned', {
@@ -210,7 +230,8 @@ io.on('connection', (socket) => {
                 velocity: updateData.velocity,
                 health: updateData.health,
                 lookDirection: updateData.lookDirection,
-                timeStamp: updateData.timeStamp
+                timeStamp: updateData.timeStamp,
+                isDead: updateData.isDead
             });
         }
     });

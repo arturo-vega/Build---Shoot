@@ -148,7 +148,7 @@ function App() {
         setLoadingProcess(0);
 
         try {
-            const game = new Game(socket, playerName, setLoadingProcess, setLoadingStatus);
+            const game = new Game(socket, playerName, setLoadingProcess, setLoadingStatus, setGameState);
             window.gameInstance = game;
 
             await game.initializationFinished;
@@ -176,7 +176,7 @@ function App() {
         setAvailableRooms([]);
     };
 
-    if (gameState == 'loading') {
+    if (gameState === 'loading') {
         return (
             <div className="loading-screen">
                 <h2>{loadingStatus}</h2>
@@ -187,7 +187,7 @@ function App() {
         );
     }
 
-    if (gameState == 'playing') {
+    if (gameState === 'playing') {
         return (
             <div className="game-hud">
                 <HealthBar health={playerHealth} />
@@ -198,6 +198,26 @@ function App() {
                     className="back-button"
                     onClick={backToMenu}
                 >Back</button>
+            </div>
+        );
+    }
+
+    if (gameState === 'dead') {
+        return (
+            <div className="game-hud">
+                <HealthBar health={playerHealth} />
+                <WeaponDisplay weapon={currentWeapon} numBlocks={currentBlocks} itemCharge={itemCharge} />
+                <FPSCounter fps={gameFPS} />
+                <GameInfo blueScore={blueScore} redScore={redScore} gameTime={gameTime} />
+                <button
+                    className="back-button"
+                    onClick={backToMenu}
+                >Back</button>
+                <div className="respawn-container">
+                    <div className='respawn-label'>
+                        <h1>DEAD!</h1>
+                    </div>
+                </div>
             </div>
         );
     }

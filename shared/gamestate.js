@@ -3,6 +3,7 @@ export class GameState {
         this.gameType = gameType;
         this.gameTime = gameTime;
         this.breakTime = 30;
+        this.respawnTime = 10;
         this.timeRemaining = 0;
         this.redPlayers = new Map();
         this.bluePlayers = new Map();
@@ -14,7 +15,7 @@ export class GameState {
             'red': 0,
             'blue': 0
         }
-        this.scoreToWin = 3;
+        this.scoreToWin = 20;
         this.redFlagStolen = false;
         this.blueFlagStolen = false;
         this.redScored = false;
