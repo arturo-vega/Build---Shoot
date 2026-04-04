@@ -8,13 +8,13 @@ import { GameRoom } from './gameroom.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:5173",
+        origin: process.env.CLIENT_ORIGIN || "http://localhost:5173",
         methods: ["GET", "POST"],
         allowedHeaders: ["Content-Type"],
         credentials: true
