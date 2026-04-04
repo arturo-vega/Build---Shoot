@@ -261,6 +261,7 @@ export class Player {
 
     respawn() {
         this.isDead = false;
+        this.waitingForReaspawn = false;
         this.position = { ...this.spawnPoint };
         console.log(this.spawnPoint);
         console.log(this.position);

@@ -18,7 +18,7 @@ function App() {
 
     const [loadingProcess, setLoadingProcess] = useState(0);
     const [loadingStatus, setLoadingStatus] = useState('');
-    // 'menu', 'connecting', 'loading', 'playing'
+    // 'menu', 'connecting', 'loading', 'playing', 'dead'
     const [gameState, setGameState] = useState('');
     const [socket, setSocket] = useState(null);
     const [serverUrl, setServerUrl] = useState( import.meta.env.VITE_SERVER_URL || 'http://localhost:3000');
@@ -31,9 +31,9 @@ function App() {
             if (window.gameInstance && window.gameInstance.player) {
                 setPlayerHealth(window.gameInstance.player.health);
                 setCurrentFPS(window.gameInstance.FPS);
-                setRedScore(window.gameInstance.gameState.teamScore.red);
-                setBlueScore(window.gameInstance.gameState.teamScore.blue);
-                setGameTime(window.gameInstance.gameState.timeRemaining);
+                setRedScore(window.gameInstance.teamScoreRed);
+                setBlueScore(window.gameInstance.teamScoreBlue);
+                setGameTime(window.gameInstance.timeRemaining);
 
                 const weapon = window.gameInstance.controls.itemNames[window.gameInstance.controls.currentItemIndex];
 

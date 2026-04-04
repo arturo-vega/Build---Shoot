@@ -1,5 +1,5 @@
 import { World } from './world.js';
-import { GameState } from '../shared/gamestate.js';
+import { GameState } from './gamestate.js';
 import { clearInterval } from 'timers';
 
 export class GameRoom {
@@ -14,11 +14,10 @@ export class GameRoom {
         this.lastActivity = Date.now();
 
         this.gameType = gameType;
-        this.gameTime = gameTime;
 
         this.broadcastInterval = null;
 
-        this.timeRemaining = this.gameTime;
+        this.timeRemaining = gameTime;
         this.redTeamScore = 0;
         this.blueTeamScore = 0;
 
@@ -59,8 +58,8 @@ export class GameRoom {
     gameStateUpdate() {
         const gameUpdate = {
             timeRemaining: this.gameState.timeRemaining,
-            redTeamScore: this.gameState.teamScore.red,
-            blueTeamScore: this.gameState.teamScore.blue,
+            redTeamScore: this.gameState.teamScore['red'],
+            blueTeamScore: this.gameState.teamScore['blue']
         }
 
         return gameUpdate;
@@ -164,7 +163,7 @@ export class GameRoom {
 
         if (this.gameState) {
             clearInterval(this.gameState.gameTimer);
-            this.gameState.gametimer = null;
+            this.gameState.gameTimer = null;
         }
     }
 }

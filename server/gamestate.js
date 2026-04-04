@@ -1,8 +1,10 @@
+
+
 export class GameState {
     constructor(gameType, gameTime) {
         this.gameType = gameType;
         this.gameTime = gameTime;
-        this.breakTime = process.env.BREAK_TIME|| 30;
+        this.breakTime = process.env.BREAK_TIME || 30;
         this.respawnTime = process.env.RESPAWN_TIME || 10;
         this.timeRemaining = 0;
         this.redPlayers = new Map();
@@ -52,6 +54,20 @@ export class GameState {
             this.teamScore['blue']++;
             this.redFlagStolen = false;
             if (this.teamScore['blue'] >= this.scoreToWin) {
+                this.gameOver();
+            }
+        }
+    }
+
+    playerDied(teamColor) {
+        if (teamColor === 'red') {
+            this.teamScore['blue']++;
+            if (this.teamScore['blue'] >= this.scoreToWin) {
+                this.gameOver();
+            }
+        } else { // blue
+            this.teamScore['red']++;
+            if (this.teamScore['red'] >= this.scoreToWin) {
                 this.gameOver();
             }
         }
@@ -113,16 +129,21 @@ export class GameState {
         if (timeOut) {
             if (this.teamScore['red'] > this.teamScore['blue']) {
                 this.redTeamWon = true;
+                console.log("Game over, Red Team won");
             } else if (this.teamScore['red'] < this.teamScore['blue']) {
                 this.blueTeamwon = true;
+                console.log("Game over, Blue Team won");
             } else {
                 this.tie = true;
+                console.log("Game over, both teams lost");
             }
         } else {
             if (this.teamScore['red'] > this.teamScore['blue']) {
                 this.redTeamWon = true;
+                console.log("Game over, Red Team won");
             } else if (this.teamScore['red'] < this.teamScore['blue']) {
                 this.blueTeamwon = true;
+                console.log("Game over, Blue Team won");
             }
         }
 

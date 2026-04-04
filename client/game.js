@@ -3,7 +3,7 @@ import { GLTFLoader } from '../node_modules/three/examples/jsm/loaders/GLTFLoade
 import { Player } from './player.js';
 import { Projectiles } from './projectiles.js';
 import { World } from './world.js';
-import { GameState } from '../shared/gamestate.js';
+import { GameState } from '../server/gamestate.js';
 import { Controls } from './controls.js'
 import { Item } from './item.js'
 
@@ -28,7 +28,10 @@ export class Game {
 
         this.otherPlayers = new Map();
         this.gameModels = new Map();
-        this.gameState = new GameState();
+        
+        this.teamScoreBlue = 0;
+        this.teamScoreRed = 0;
+        this.timeRemaining = 0;
 
         this.playerModels = {
             blueRobot: './models/bluerobot.glb',
@@ -479,9 +482,9 @@ export class Game {
         });
 
         this.socket.on('gameStateUpdate', (update) => {
-            this.gameState.timeRemaining = update.timeRemaining;
-            this.gameState.teamScore.red = update.redTeamScore;
-            this.gameState.teamScore.blue = update.blueTeamScore
+            this.timeRemaining = update.timeRemaining;
+            this.teamScorered = update.redTeamScore;
+            this.teamScoreBlue = update.blueTeamScore
         });
     }
 
@@ -528,6 +531,10 @@ export class Game {
             lookDirection: this.player.lookDirection,
             timeStamp: performance.now()
         });
+    }
+
+    sendYourDeath() {
+        this.socket.emit('playerDied', this.player.playerTeam);
     }
 
     sendPVPInfo() {
@@ -638,8 +645,10 @@ export class Game {
         const currentTime = performance.now();
         const deltaTime = (currentTime - this.lastUpdateTime) / 500;
 
-        if (this.player.isDead) {
-            this.setGameState('dead');
+        if (this.player.isDead && !this.player.waitingForRespawn) {
+            console.log(this.setGameState);
+            this.sendYourDeath();
+            this.player.waitingForRespawn = true;
         }
 
         this.controls.update();

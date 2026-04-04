@@ -8,7 +8,8 @@ import { GameRoom } from './gameroom.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
+const gameTime = process.env.GAME_TIME;
 
 const app = express();
 const server = createServer(app);
@@ -48,7 +49,7 @@ function getRoomsList() {
 
 function cleanupEmptyRooms() {
     const now = Date.now();
-    const ROOM_TIMEOUT = 1 * 1 * 1000; // 5 mins    5 * 60 * 1000
+    const ROOM_TIMEOUT = 1 * 60 * 1000; // 5 mins    5 * 60 * 1000
 
     for (const [roomId, room] of rooms.entries()) {
         if (room.isEmpty() && (now - room.lastActivity > ROOM_TIMEOUT)) {
@@ -63,7 +64,7 @@ function cleanupEmptyRooms() {
 }
 
 // cleanup rooms every 5 mins
-setInterval(cleanupEmptyRooms, 1 * 1 * 1000); // 60 * 1000
+setInterval(cleanupEmptyRooms, 1 * 60 * 1000); // 60 * 1000
 
 
 io.on('connection', (socket) => {
@@ -85,7 +86,7 @@ io.on('connection', (socket) => {
             socket.playerName || data.playerName,
             8,
             'dm',
-            600,
+            gameTime,
             {
                 // call back for updates
                 onGameStateUpdate: (gameUpdate) => {
@@ -234,6 +235,19 @@ io.on('connection', (socket) => {
                 isDead: updateData.isDead
             });
         }
+    });
+
+    socket.on('playerDied', (playerTeam) => {
+        const roomId = playerRooms.get(socket.id);
+
+        if (!roomId) return;
+
+        const room = rooms.get(roomId);
+
+        if (!room) return;
+
+        room.gameState.playerDied(playerTeam);
+        console.log(`${playerTeam} player died, ${room.gameState.teamScore['blue']}`);
     });
 
     socket.on('playerHit', (damageInfo) => {
