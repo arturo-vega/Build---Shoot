@@ -48,7 +48,7 @@ function getRoomsList() {
 
 function cleanupEmptyRooms() {
     const now = Date.now();
-    const ROOM_TIMEOUT = 30 * 60 * 1000; // 30 mins
+    const ROOM_TIMEOUT = 1 * 1 * 1000; // 5 mins    5 * 60 * 1000
 
     for (const [roomId, room] of rooms.entries()) {
         if (room.isEmpty() && (now - room.lastActivity > ROOM_TIMEOUT)) {
@@ -63,7 +63,7 @@ function cleanupEmptyRooms() {
 }
 
 // cleanup rooms every 5 mins
-setInterval(cleanupEmptyRooms, 5 * 60 * 1000);
+setInterval(cleanupEmptyRooms, 1 * 1 * 1000); // 60 * 1000
 
 
 io.on('connection', (socket) => {

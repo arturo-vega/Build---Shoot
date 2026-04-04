@@ -21,7 +21,7 @@ function App() {
     // 'menu', 'connecting', 'loading', 'playing'
     const [gameState, setGameState] = useState('');
     const [socket, setSocket] = useState(null);
-    const [serverUrl, setServerUrl] = useState(import.meta.env.VITE_SERVER_URL || 'http://localhost:3000');
+    const [serverUrl, setServerUrl] = useState( import.meta.env.VITE_SERVER_URL || 'http://localhost:3000');
     const [playerName, setPlayerName] = useState('');
     const [connectionError, setConnectionError] = useState('');
     const [availableRooms, setAvailableRooms] = useState([]);

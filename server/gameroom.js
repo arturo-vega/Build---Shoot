@@ -1,5 +1,6 @@
 import { World } from './world.js';
 import { GameState } from '../shared/gamestate.js';
+import { clearInterval } from 'timers';
 
 export class GameRoom {
     constructor(id, creatorName, maxPlayers = 8, gameType, gameTime, callbacks) {
@@ -159,6 +160,11 @@ export class GameRoom {
         if (this.gameLoop) {
             clearInterval(this.gameLoop);
             this.gameLoop = null;
+        }
+
+        if (this.gameState) {
+            clearInterval(this.gameState.gameTimer);
+            this.gameState.gametimer = null;
         }
     }
 }

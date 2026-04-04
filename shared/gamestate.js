@@ -2,8 +2,8 @@ export class GameState {
     constructor(gameType, gameTime) {
         this.gameType = gameType;
         this.gameTime = gameTime;
-        this.breakTime = 30;
-        this.respawnTime = 10;
+        this.breakTime = process.env.BREAK_TIME|| 30;
+        this.respawnTime = process.env.RESPAWN_TIME || 10;
         this.timeRemaining = 0;
         this.redPlayers = new Map();
         this.bluePlayers = new Map();
@@ -15,7 +15,7 @@ export class GameState {
             'red': 0,
             'blue': 0
         }
-        this.scoreToWin = 20;
+        this.scoreToWin = process.env.SCORE_TO_WIN || 20;
         this.redFlagStolen = false;
         this.blueFlagStolen = false;
         this.redScored = false;
@@ -91,6 +91,14 @@ export class GameState {
         this.gameStarted = true;
         this.timeRemaining = this.gameTime;
 
+        this.blueTeamWon = false;
+        this.redTeamWon = false;
+        this.tie = false;
+
+        if (this.gameTimer) {
+            clearInterval(this.gameTimer);
+        }
+
         this.gameTimer = setInterval(() => {
             this.timeRemaining--;
             if (this.timeRemaining <= 0) {
@@ -120,6 +128,10 @@ export class GameState {
 
         this.gameEnded = true;
         this.timeRemaining = this.breakTime;
+
+        if (this.gameTimer) {
+            clearInterval(this.gameTimer);
+        }
 
         this.gameTimer = setInterval(() => {
             this.timeRemaining--;
