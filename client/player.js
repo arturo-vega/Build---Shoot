@@ -62,6 +62,12 @@ export class Player {
         this.player.userData = { id: this.id, position: this.position };
         scene.add(this.player);
 
+        // Name label
+        this.playerLabel = this.createLabel(200, playerName);
+        this.playerLabel.position.set(this.player.position.x, this.player.position.y, 0);
+        scene.add(this.playerLabel);
+        
+
         // Animation setup
         this.mixer = new THREE.AnimationMixer(this.player);
         this.clips = this.player.animations;
@@ -83,6 +89,50 @@ export class Player {
         this.sounds = { shot: new THREE.PositionalAudio(this.listener) };
         Object.values(this.sounds).forEach(sound => this.player.add(sound));
         this.loadSounds(soundPaths);
+    }
+
+    createLabel(labelSize, playerName) {
+        const canvas = this.makeLabelCanvas(labelSize, playerName);
+        const texture = new THREE.CanvasTexture(canvas);
+        const labelGeometry = new THREE.PlaneGeometry(canvas.width/400, canvas.height/400);
+
+        // filter because label is most likely not power of 2
+        //texture.minFilter = THREE.LinearFilter;
+        //texture.wrapS = THREE.ClampToEdgeWrapping;
+        //texture.wrapT = THREE.ClampToEdgeWrapping;
+
+        const labelMaterial = new THREE.MeshBasicMaterial({
+            map: texture,
+            side: THREE.DoubleSide,
+            transparent: true,
+        });
+
+        const label = new THREE.Mesh(labelGeometry, labelMaterial);
+
+        return label;
+    }
+
+    makeLabelCanvas(labelSize, playerName) {
+        const borderSize = 2;
+        const ctx = document.createElement('canvas').getContext('2d');
+        const font = `${labelSize}px bold sans-serif`;
+
+        ctx.font = font;
+
+        const doubleBorderSize = borderSize * 2;
+        const width = ctx.measureText(playerName).width + doubleBorderSize;
+        const height = labelSize + doubleBorderSize;
+        
+        ctx.canvas.width = width;
+        ctx.canvas.height = height;
+
+        ctx.font = font;
+        ctx.textBaseline = 'top';
+
+        ctx.fillStyle = 'white';
+        ctx.fillText(playerName, borderSize, borderSize);
+
+        return ctx.canvas;
     }
 
     loadSounds(soundPaths) {
@@ -114,6 +164,10 @@ export class Player {
         const playerPosition = this.player.position.clone();
         playerPosition.y -= 1;
         this.playerBB.setFromCenterAndSize(playerPosition, this.initialBBSize);
+    }
+
+    updatePlayerLabel() {
+        this.playerLabel.position.set(this.position.x, this.position.y + 1, 0);
     }
 
     applyGravity(deltaTime) {
@@ -284,6 +338,7 @@ export class Player {
         this.mixer.update(deltaTime);
         this.animate();
         this.player.position.set(this.position.x, this.position.y, this.position.z);
+        this.updatePlayerLabel();
         this.updateBoundingBox();
 
         if (this.player.position.y < this.world.deathFloor) {
