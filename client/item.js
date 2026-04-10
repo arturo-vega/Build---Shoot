@@ -75,9 +75,15 @@ export class Item {
 
     updateWandCharge() {
         this.player.wandCharge -= this.player.wandChargeUsed;
+        this.playWandSound();
+        this.player.fired = true;
         if (this.player.wandCharge < 0) {
             this.player.wandCharge = 0;
         }
+    }
+
+    playWandSound() {
+        this.player.playSound('shot');
     }
 
     calculateDamage() {
@@ -223,7 +229,7 @@ export class Item {
         this.currentMousePosition.y = Math.floor(intersectionPoint.y);
 
         if (
-            (!this.mouseInSameSpot(this.previousMousePosition, this.currentMousePosition) || !this.ghostBlockOn)
+            !this.mouseInSameSpot(this.previousMousePosition, this.currentMousePosition)
             && (this.type === 'placer' || this.type === 'remover')
         ) {
             this.world.removeBlock(this.previousMousePosition.x, this.previousMousePosition.y, 'ghost');

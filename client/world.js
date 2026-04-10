@@ -7,12 +7,13 @@ export class World {
 
         this.scene = scene;
         this.blockGhosts = new Map();
-        //this.blocksBB = new Map();
         this.blocks = new Map();
 
         this.blockAdded = false;
         this.blockRemoved = false;
         this.blockDamaged = false;
+
+        this.ghostBlockPosition;
 
         this.lastBlockModified = { x: 0, y: 0 };
         this.damagedBlockHealth = 100;
@@ -44,7 +45,7 @@ export class World {
             }
         }
 
-        const block = new Block(x, y, type, health, this.listener);
+        const block = new Block(x, y, type, health, this.listener, true);
         this.blocks.set(key, block);
         this.scene.add(block.mesh);
 
@@ -91,7 +92,7 @@ export class World {
     removeBlock(x, y, type) {
         const key = `${x},${y}`;
         if (type === 'ghost') {
-            let block = this.blockGhosts.get(key);
+            let block = this.blockGhosts.get(this.ghostBlockPosition);
             if (block) {
                 block.geometry.dispose();
                 block.material.dispose();
@@ -165,6 +166,7 @@ export class World {
         }
 
         this.scene.add(blockGhost);
+        this.ghostBlockPosition = key;
         this.blockGhosts.set(key, blockGhost);
     }
 

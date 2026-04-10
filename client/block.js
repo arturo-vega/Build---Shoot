@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 
 export class Block {
-    constructor(x, y, type, health, listener) {
+    constructor(x, y, type, health, listener, playPlaceSound = false) {
         this.listener = listener;
         this.type = type;
         this.x = x;
         this.y = y;
+        this.playPlaceSound = playPlaceSound;
 
         // all using wood sound but can change later
         const blockTypes = {
@@ -110,8 +111,8 @@ export class Block {
                 this.sounds[type].setBuffer(buffer);
 
                 // placing block sound doesn't work, play sound is done before buffer is ready
-                // unless it's done here... will need to fix this
-                if (type === 'place') {
+                // unless it's done here
+                if (type === 'place' && this.playPlaceSound) {
                     this.playSound('place');
                 }
 

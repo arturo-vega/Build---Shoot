@@ -103,11 +103,11 @@ export class Controls {
 
     useItem() {
         this.items[this.currentItemIndex].use();
-        if (this.currentItemIndex === 2) {
-            this.player.playSound('shot');
-            this.player.fired = true;
-            this.mouseHeld = false;
-        }
+        //if (this.currentItemIndex === 2) {
+        //    this.player.playSound('shot');
+        //    this.player.fired = true;
+        //    this.mouseHeld = false;
+        //}
     }
 
     update() {

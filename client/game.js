@@ -3,7 +3,6 @@ import { GLTFLoader } from '../node_modules/three/examples/jsm/loaders/GLTFLoade
 import { Player } from './player.js';
 import { Projectiles } from './projectiles.js';
 import { World } from './world.js';
-import { GameState } from '../server/gamestate.js';
 import { Controls } from './controls.js'
 import { Item } from './item.js'
 
