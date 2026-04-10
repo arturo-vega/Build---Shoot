@@ -317,8 +317,6 @@ export class Player {
         this.isDead = false;
         this.waitingForReaspawn = false;
         this.position = { ...this.spawnPoint };
-        console.log(this.spawnPoint);
-        console.log(this.position);
         this.velocity.x = 0;
         this.velocity.y = 0;
         this.velocity.z = 0;

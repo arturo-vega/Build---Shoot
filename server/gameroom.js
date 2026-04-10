@@ -125,6 +125,7 @@ export class GameRoom {
         // only set timer when player first dies
         if (player.health <= 0 && !player.isDead) {
             player.isDead = true;
+            this.gameState.playerDied(player.playerTeam);
 
             setTimeout(() => {
                 player.respawn = true;

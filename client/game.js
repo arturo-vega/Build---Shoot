@@ -532,9 +532,6 @@ export class Game {
         });
     }
 
-    sendYourDeath() {
-        this.socket.emit('playerDied', this.player.playerTeam);
-    }
 
     sendPVPInfo() {
         if (this.player.didDamage) {
@@ -643,12 +640,6 @@ export class Game {
     update() {
         const currentTime = performance.now();
         const deltaTime = (currentTime - this.lastUpdateTime) / 500;
-
-        if (this.player.isDead && !this.player.waitingForRespawn) {
-            console.log(this.setGameState);
-            this.sendYourDeath();
-            this.player.waitingForRespawn = true;
-        }
 
         this.controls.update();
 
