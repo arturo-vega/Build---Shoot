@@ -163,7 +163,6 @@ function App() {
     };
 
     const backToMenu = () => {
-        console.log("Pressed back");
         if (socket) {
             socket.disconnect();
             setSocket(null);

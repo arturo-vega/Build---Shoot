@@ -35,10 +35,9 @@ export class World {
         const type = 'wood';
         const health = 200;
 
-        if (!this.isValidSpot(x, y)) return null;
+        if (!this.isValidSpot(x, y, playerBB)) return null;
 
         if (playerBB) {
-            console.log(playerBB);
             const ghostBlock = this.blockGhosts.get(key);
             if (ghostBlock && playerBB.intersectsBox(ghostBlock.boundingBox)) {
                 return null;
@@ -150,7 +149,7 @@ export class World {
         blockBB.setFromObject(blockGhost);
         blockGhost.boundingBox = blockBB;
 
-        const isSpotEmpty = this.isValidSpot(x, y);
+        const isSpotEmpty = this.isValidSpot(x, y, playerBB);
         const doesNotIntersectPlayer = !playerBB.intersectsBox(blockBB);
         const block = this.getBlockAt(x, y);
 
@@ -161,7 +160,7 @@ export class World {
         }
         else if (currentItem == 'Remover') {
             blockGhost.material.color.setHex(
-                block && block.type != 'steel' ? 0x98fb98 : 0xdc143c //green if true red if false
+                !this.withinMinDistance(x, y, playerBB) && block && block.type != 'steel' ? 0x98fb98 : 0xdc143c //green if true red if false
             );
         }
 
@@ -171,11 +170,24 @@ export class World {
     }
 
     // checks to see if a spot in the map has a block there or not or other blocks connected to spot
-    isValidSpot(x, y) {
+    isValidSpot(x, y, playerBB) {
         const key = `${x},${y}`
         const block = this.blocks.get(key);
-        if (block || !this.adjacentBlocks(x, y) || y <= this.deathFloor) return false;
+        if (
+            block || 
+            !this.adjacentBlocks(x, y) || 
+            y <= this.deathFloor ||
+            this.withinMinDistance(x, y, playerBB)
+            ) return false;
+
         return true;
+    }
+
+    withinMinDistance(x, y, playerBB) {
+        return (playerBB.min.x + 6 < x ||
+            playerBB.min.y + 6 < y ||
+            playerBB.min.x - 5 > x ||
+            playerBB.min.y - 5 > y )
     }
 
     adjacentBlocks(x, y) {
