@@ -60,6 +60,8 @@ export class GameState {
     }
 
     playerDied(teamColor) {
+        if (this.gameEnded) return;
+
         if (teamColor === 'red') {
             this.teamScore['blue']++;
             if (this.teamScore['blue'] >= this.scoreToWin) {
@@ -106,10 +108,14 @@ export class GameState {
     gameStart() {
         this.gameStarted = true;
         this.timeRemaining = this.gameTime;
+        this.gameEnded = false;
 
         this.blueTeamWon = false;
         this.redTeamWon = false;
         this.tie = false;
+
+        this.teamScore['blue'] = 0;
+        this.teamScore['red'] = 0;
 
         if (this.gameTimer) {
             clearInterval(this.gameTimer);

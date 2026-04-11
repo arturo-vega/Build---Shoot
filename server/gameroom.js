@@ -20,6 +20,7 @@ export class GameRoom {
         this.timeRemaining = gameTime;
         this.redTeamScore = 0;
         this.blueTeamScore = 0;
+        this.teamWon = null;
 
         this.callbacks = callbacks || {};
 
@@ -56,10 +57,24 @@ export class GameRoom {
 
 
     gameStateUpdate() {
+        if (this.gameState.gameEnded) {
+            if (this.gameState.blueTeamWon)
+                this.teamWon = 'blue';
+            else if (this.gameState.redTeamWon)
+                this.teamWon = 'red';
+            else 
+                this.teamWon = 'tie';
+        } else {
+            this.gameEnded = false;
+            this.teamWon = null;
+        }
+
         const gameUpdate = {
             timeRemaining: this.gameState.timeRemaining,
             redTeamScore: this.gameState.teamScore['red'],
-            blueTeamScore: this.gameState.teamScore['blue']
+            blueTeamScore: this.gameState.teamScore['blue'],
+            teamWon: this.teamWon,
+            gameEnded: this.gameState.gameEnded
         }
 
         return gameUpdate;

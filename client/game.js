@@ -31,6 +31,8 @@ export class Game {
         this.teamScoreBlue = 0;
         this.teamScoreRed = 0;
         this.timeRemaining = 0;
+        this.teamWon = null;
+        this.gameEnded = false;
 
         this.playerModels = {
             blueRobot: './models/bluerobot.glb',
@@ -482,7 +484,9 @@ export class Game {
         this.socket.on('gameStateUpdate', (update) => {
             this.timeRemaining = update.timeRemaining;
             this.teamScorered = update.redTeamScore;
-            this.teamScoreBlue = update.blueTeamScore
+            this.teamScoreBlue = update.blueTeamScore;
+            this.teamWon = update.teamWon;
+            this.gameEnded = update.gameEnded;
         });
     }
 
@@ -629,6 +633,20 @@ export class Game {
         });
     }
 
+    updateGameState() {
+        if (!this.gameEnded) {
+            this.setGameState('playing');
+        }
+
+        if (this.player.isDead) {
+            this.setGameState('dead');
+        }
+
+        if (this.gameEnded) {
+            this.setGameState('gameover');
+        }
+    }
+
     animate() {
         requestAnimationFrame(() => this.animate());
         this.update();
@@ -646,9 +664,7 @@ export class Game {
         this.player.mouseX = this.controls.mouse.x;
         this.world.update();
 
-        if (this.player.isDead) {
-            this.setGameState('dead');
-        }
+        this.updateGameState();
 
         // sends updates at constant rate rather than every frame at the speed of update rate
         if (currentTime - this.lastUpdateSent > this.updateRate) {

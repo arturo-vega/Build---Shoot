@@ -10,6 +10,7 @@ export class Controls {
         this.mouse = { x: 0, y: 0 };
         this.player = player
         this.items = items;
+        this.canUseItems = true;
 
         this.currentItemIndex = 2;
 
@@ -69,7 +70,7 @@ export class Controls {
             if (this.keys['2']) this.switchItem(1);
             if (this.keys['3']) this.switchItem(2);
 
-            if (this.mouseHeld) this.useItem();
+            if (this.mouseHeld && !this.game.gameEnded) this.useItem();
         } else {
             this.player.applyFriction();
         }

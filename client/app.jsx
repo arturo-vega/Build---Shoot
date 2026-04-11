@@ -18,7 +18,7 @@ function App() {
 
     const [loadingProcess, setLoadingProcess] = useState(0);
     const [loadingStatus, setLoadingStatus] = useState('');
-    // 'menu', 'connecting', 'loading', 'playing', 'dead'
+    // 'menu', 'connecting', 'loading', 'playing', 'dead', 'gameover'
     const [gameState, setGameState] = useState('');
     const [socket, setSocket] = useState(null);
     const [serverUrl, setServerUrl] = useState( import.meta.env.VITE_SERVER_URL || 'http://localhost:3000');
@@ -216,6 +216,26 @@ function App() {
                 <div className="respawn-container">
                     <div className='respawn-label'>
                         <h1>Resapwning..... {window.gameInstance.player.respawnTimer}</h1>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (gameState === 'gameover') {
+        return (
+            <div className="game-hud">
+                <HealthBar health={playerHealth} />
+                <WeaponDisplay weapon={currentWeapon} numBlocks={currentBlocks} itemCharge={itemCharge} />
+                <FPSCounter fps={gameFPS} />
+                <GameInfo blueScore={blueScore} redScore={redScore} gameTime={gameTime} />
+                <button
+                    className="back-button"
+                    onClick={backToMenu}
+                >Back</button>
+                <div className="respawn-container">
+                    <div className='respawn-label'>
+                        <h1>Game Has Ended!</h1>
                     </div>
                 </div>
             </div>
