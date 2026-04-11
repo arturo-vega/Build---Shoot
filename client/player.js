@@ -301,7 +301,6 @@ export class Player {
         this.velocity.y += (rayDirection.y * 15);
         this.onGround = false;
         if (this.health <= 0) {
-            this.isDead = true;
             this.thenDie(rayDirection);
         }
     }
@@ -314,8 +313,10 @@ export class Player {
     }
 
     respawn() {
+        clearInterval(this.respawnCountDown);
         this.isDead = false;
         this.waitingForReaspawn = false;
+        this.respawnTimer = 0;
         this.position = { ...this.spawnPoint };
         this.velocity.x = 0;
         this.velocity.y = 0;
@@ -342,6 +343,16 @@ export class Player {
         if (this.player.position.y < this.world.deathFloor) {
             this.isDead = true;
             this.health = 0;
+        }
+
+        if (this.isDead && !this.waitingForReaspawn) {
+            this.waitingForReaspawn = true;
+            this.respawnTimer = 10;
+            console.log(this.respawnTimer)
+            this.respawnCountDown = setInterval(() => {
+                this.respawnTimer -= 1;
+                if (this.respawnTimer < 0) this.respawnTimer = 0;
+            }, 1000);
         }
 
         // update items

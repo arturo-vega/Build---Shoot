@@ -215,7 +215,7 @@ function App() {
                 >Back</button>
                 <div className="respawn-container">
                     <div className='respawn-label'>
-                        <h1>DEAD!</h1>
+                        <h1>Resapwning..... {window.gameInstance.player.respawnTimer}</h1>
                     </div>
                 </div>
             </div>

@@ -452,7 +452,6 @@ export class Game {
             }
 
             if (playerid === this.socket.id) {
-                console.log("Respawning player");
                 this.setGameState('playing');
                 this.player.respawn();
             }
@@ -531,7 +530,6 @@ export class Game {
             timeStamp: performance.now()
         });
     }
-
 
     sendPVPInfo() {
         if (this.player.didDamage) {
@@ -647,6 +645,10 @@ export class Game {
         this.player.update(deltaTime);
         this.player.mouseX = this.controls.mouse.x;
         this.world.update();
+
+        if (this.player.isDead) {
+            this.setGameState('dead');
+        }
 
         // sends updates at constant rate rather than every frame at the speed of update rate
         if (currentTime - this.lastUpdateSent > this.updateRate) {
