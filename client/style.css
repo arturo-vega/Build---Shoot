@@ -243,6 +243,8 @@ canvas.webgl {
     cursor: pointer;
     font-weight: bold;
     z-index: 1;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .back-button:hover {
@@ -286,6 +288,8 @@ canvas.webgl {
     margin-bottom: 20px;
     font-weight: bold;
     text-shadow: 1px 1px 2px black;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .loading-label {
@@ -310,6 +314,8 @@ canvas.webgl {
     position: relative;
     color: white;
     font-family: 'Arial', sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 /* Health Bar Styling */
