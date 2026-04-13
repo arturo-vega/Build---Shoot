@@ -51,9 +51,25 @@ export class GameRoom {
                     }
                 }
             });
+
+            if (this.gameState.needRefresh === true) {
+                console.log("Refreshing game world")
+                this.gameState.needRefresh = false;
+                if (this.callbacks.onWorldRefresh) {
+                    this.callbacks.onWorldRefresh(this.worldRefresh());
+                }
+            }
         }, 500);
     }
 
+
+    worldRefresh() {
+        let refreshedWorld = null;
+
+        refreshedWorld = this.world.refreshWorld();
+
+        return refreshedWorld;
+    }
 
 
     gameStateUpdate() {

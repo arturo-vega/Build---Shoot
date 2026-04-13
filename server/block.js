@@ -70,6 +70,10 @@ export class Block {
         this.health = Math.max(0, blockHealth);
     }
 
+    resetHealth() {
+        this.health = this.maxHealth;
+    }
+
     destroy() {
         this.mesh.geometry.dispose();
         this.mesh.material.dispose();

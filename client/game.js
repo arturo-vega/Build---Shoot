@@ -488,6 +488,12 @@ export class Game {
             this.teamWon = update.teamWon;
             this.gameEnded = update.gameEnded;
         });
+
+        this.socket.on('worldRefresh', (worldRefresh) => {
+            let worldRefreshUpdate = new Object(JSON.parse(worldRefresh));
+            this.world.refreshWorld(worldRefreshUpdate); 
+            this.player.respawn();
+        });
     }
 
     updateOtherPlayerPosition(updateData, player) {
@@ -723,6 +729,8 @@ export class Game {
         this.socket.off('mapUpdated');
         this.socket.off('roomJoined');
         this.socket.off('roomLeft');
+        this.socket.off('gameStateUpdate');
+        this.socket.off('worldRefresh');
 
         this.otherPlayers.clear();
 

@@ -18,22 +18,78 @@ export class World {
 
         this.lastBlockModified = { x: 0, y: 0 };
 
+        this.generatedBlocks = new Array();
+        this.worldRefresh = {};
+
         // creates initial blocks for the stage
         this.generateWorld(this.baseSize, this.stairHeight, this.spawnArea, this.mapDistance, this.flagArea);
     }
+
+    refreshWorld() {
+        let createdBlocks = new Array();
+        let destroyedBlocks = new Array();
+        let resetBlocks = new Array();
+
+        let generatedKeys = new Set(this.generatedBlocks.map(c => `${c.x},${c.y}`));
+
+        for (let [coords, block] of this.blocks) {
+
+            if (generatedKeys.has(coords)) {
+                if (block.health < block.maxHealth) {
+                    block.resetHealth();
+                    resetBlocks.push({x: block.x, y: block.y});
+                }
+            }
+            else {
+                this.removeBlockRefresh(block.x, block.y);
+                destroyedBlocks.push({x: block.x, y: block.y});
+            }
+        }
+
+        this.generatedBlocks.forEach(coords => {
+            const key = `${coords.x},${coords.y}`;
+
+            if (!this.blocks.has(key)) {
+                this.createBlock(coords.x, coords.y, 'wood');
+                createdBlocks.push(coords);
+            }
+        });
+
+        console.log({createdBlocks, destroyedBlocks, resetBlocks});
+        return this.worldRefresh = {createdBlocks, destroyedBlocks, resetBlocks}; 
+    }
+
+    //getWorld() {
+    //    return this.worldRefresh;
+    //}
 
     generateWorld(baseSize, stairHeight, spawnArea, mapDistance, flagArea) {
         let redBaseArray = new Array();
         let stairsArray = new Array();
         let blueBaseArray = new Array();
+
         for (let x = 0; x < baseSize + flagArea; x++) {
             for (let y = 0; y < 5; y++) {
-                redBaseArray.push({ x: x, y: y });
+                redBaseArray.push({ 
+                    x: x, 
+                    y: y 
+                });
+
+                this.generatedBlocks.push({
+                    x: x,
+                    y: y
+                });
             }
         }
+
         for (let x = spawnArea; x < baseSize; x++) {
             for (let y = 5; y < x - spawnArea; y++) {
                 stairsArray.push({
+                    x: x,
+                    y: y
+                });
+
+                this.generatedBlocks.push({
                     x: x,
                     y: y
                 });
@@ -53,6 +109,11 @@ export class World {
         for (let x = baseSize; x < mapDistance + baseSize; x++) {
             for (let y = 0; y < 5; y++) {
                 this.createBlock(x, y, 'wood');
+
+                this.generatedBlocks.push({
+                    x: x,
+                    y: y
+                });
             }
         }
 
@@ -61,6 +122,11 @@ export class World {
         for (let x = blueStart; x < blueStart + baseSize + flagArea; x++) {
             for (let y = 0; y < 5; y++) {
                 blueBaseArray.push({ x: x, y: y });
+
+                this.generatedBlocks.push({
+                    x: x,
+                    y: y
+                });
             }
         }
 
@@ -70,13 +136,18 @@ export class World {
                 block.y,
                 'steel'
             );
+
+            this.generatedBlocks.push({
+                    x: -block.x + blueStart + baseSize + flagArea,
+                    y: block.y
+                });
         });
         // right base
         blueBaseArray.forEach((block) => {
             this.createBlock(block.x, block.y, 'steel');
         });
 
-        this.redSpawn = new Vector3((spawnArea / 2).x, 10, 0);
+        this.redSpawn = new Vector3(spawnArea / 2, 10, 0);
         this.blueSpawn = new Vector3(((baseSize * 2) + (flagArea * 2) + spawnArea / 2), 10, 0);
     }
 
@@ -104,6 +175,17 @@ export class World {
         }
     }
 
+    removeBlockRefresh(x, y) {
+        const key = `${x},${y}`;
+        const block = this.blocks.get(key);
+
+        if (block) {
+            block.destroy();
+            this.blocks.delete(key);
+        }
+
+    }
+
     removeBlock(x, y, type = 'wood') {
         // type doesn't really matter only to make sure that it's not a ghostblock
         let key = `${x},${y}`;
@@ -123,7 +205,6 @@ export class World {
                 for (let i = 0; i < this.blocksRemoved.length; i++) {
                     block = this.blocksRemoved[i];
                     key = `${block.x},${block.y}`;
-                    console.log(`Removing block ${block.x}, ${block.y}`)
                     if (block) {
                         block.destroy();
                         this.blocks.delete(key);

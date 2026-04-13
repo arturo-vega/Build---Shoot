@@ -55,6 +55,18 @@ export class World {
         return block;
     }
 
+    createBlockRefresh(x, y) {
+        const key = `${x},${y}`;
+        const type = 'wood';
+        const health = 200;
+
+        const block = new Block(x, y, type, health, this.listener, false);
+        this.blocks.set(key, block);
+        this.scene.add(block.mesh);
+
+        return block;
+    }
+
     damageBlock(x, y, damage) {
         const block = this.getBlockAt(x, y);
         if (!block) return false;
@@ -113,6 +125,18 @@ export class World {
                 }
             }
         }
+    }
+
+    removeBlockRefresh(x, y) {
+        const key = `${x},${y}`;
+
+        let block = this.blocks.get(key);
+        if (block) {
+            block.destroy(false);
+            this.scene.remove(block.mesh);
+            this.blocks.delete(key);
+        }
+        
     }
 
     getBlockAt(x, y) {
@@ -188,6 +212,44 @@ export class World {
             playerBB.min.y + 6 < y ||
             playerBB.min.x - 5 > x ||
             playerBB.min.y - 5 > y )
+    }
+
+    refreshWorld(worldRefreshUpdate) {
+        let createdBlocks = worldRefreshUpdate.createdBlocks;
+        let destroyedBlocks = worldRefreshUpdate.destroyedBlocks;
+        let resetBlocks = worldRefreshUpdate.resetBlocks;
+
+        console.log("REFRESHED SHIT");
+
+        console.log(createdBlocks);
+        console.log(destroyedBlocks);
+        console.log(resetBlocks);
+
+        let block;
+
+        destroyedBlocks.forEach(coords => {
+            block = this.blocks.get(`${coords.x},${coords.y}`);
+
+            if (block) {
+                this.removeBlockRefresh(block.x, block.y);
+            }
+        });
+
+        createdBlocks.forEach(coords => {
+            block = this.blocks.get(`${coords.x},${coords.y}`);
+
+            if (!block) {
+                this.createBlockRefresh(coords.x, coords.y, 'wood');
+            }
+        });
+
+        resetBlocks.forEach(coords => {
+            block = this.blocks.get(`${coords.x},${coords.y}`);
+
+            if (block) {
+                block.resetHealth();
+            }
+        });
     }
 
     adjacentBlocks(x, y) {

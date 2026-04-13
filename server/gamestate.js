@@ -27,6 +27,7 @@ export class GameState {
         this.tie = false;
         this.gameEnded = false;
         this.gameStarted = true;
+        this.needRefresh = false;
 
         this.gameTimer = null;
     }
@@ -164,6 +165,7 @@ export class GameState {
             this.timeRemaining--;
             if (this.timeRemaining <= 0) {
                 this.gameStart();
+                this.needRefresh = true;
             }
         }, 1000);
     }

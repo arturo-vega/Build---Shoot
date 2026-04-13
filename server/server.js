@@ -96,7 +96,12 @@ io.on('connection', (socket) => {
                 // call back for player respawns
                 onPlayerRespawn: (playerId) => {
                     io.to(roomId).emit('playerRespawn', playerId);
-                }
+                },
+
+                onWorldRefresh: (refreshedWorld => {
+                    const transitBlocks = JSON.stringify(refreshedWorld)
+                    io.to(roomId).emit('worldRefresh', transitBlocks);
+                })
             });
 
         rooms.set(roomId, room);

@@ -170,8 +170,14 @@ export class Block {
         return this.health === 0;
     }
 
-    destroy() {
-        this.playSound('destroy');
+    resetHealth() {
+        this.health = this.maxHealth;
+        this.mesh.material.opacity = 1;
+    }
+
+    destroy(playSound = true) {
+        if (playSound)
+            this.playSound('destroy');
 
         // small delay to allow sound to play before disposing resources
         setTimeout(() => {
