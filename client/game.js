@@ -35,11 +35,11 @@ export class Game {
         this.gameEnded = false;
 
         this.playerModels = {
-            blueRobot: './models/bluerobot.glb',
-            redRobot: './models/redrobot.gltf'
+            blueRobot: '/models/bluerobot.glb',
+            redRobot: '/models/redrobot.gltf'
         };
         this.modelList = {
-            earth: './models/earth/earth.gltf'
+            earth: '/models/earth/earth.gltf'
         }
 
         this.loadedModels = new Map();

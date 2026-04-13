@@ -7,6 +7,7 @@ export default defineConfig({
     },
     plugins: [react()],
     root: './client',
+    publicDir: './public', 
     build: {
         outDir: '../dist', // Build to a dist folder in the root
         emptyOutDir: true

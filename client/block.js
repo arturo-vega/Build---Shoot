@@ -15,9 +15,9 @@ export class Block {
                 destructible: false,
                 color: 0x808080,
                 sounds: {
-                    place: './sounds/wood_place.ogg',
-                    damage: './sounds/wood_damage.ogg',
-                    destroy: './sounds/wood_destroy.ogg'
+                    place: '/sounds/wood_place.ogg',
+                    damage: '/sounds/wood_damage.ogg',
+                    destroy: '/sounds/wood_destroy.ogg'
                 }
             },
             'concrete': {
@@ -25,9 +25,9 @@ export class Block {
                 destructible: true,
                 color: 0x8b8b8b,
                 sounds: {
-                    place: './sounds/wood_place.ogg',
-                    damage: './sounds/wood_damage.ogg',
-                    destroy: './sounds/wood_destroy.ogg'
+                    place: '/sounds/wood_place.ogg',
+                    damage: '/sounds/wood_damage.ogg',
+                    destroy: '/sounds/wood_destroy.ogg'
                 }
             },
             'wood': {
@@ -35,9 +35,9 @@ export class Block {
                 destructible: true,
                 color: 0x8b4513,
                 sounds: {
-                    place: './sounds/wood_place.ogg',
-                    damage: './sounds/wood_damage.ogg',
-                    destroy: './sounds/wood_destroy.ogg'
+                    place: '/sounds/wood_place.ogg',
+                    damage: '/sounds/wood_damage.ogg',
+                    destroy: '/sounds/wood_destroy.ogg'
                 }
             }
         };
@@ -85,7 +85,7 @@ export class Block {
             position: { x: this.x, y: this.y }
         };
 
-        textureLoader.load(`./textures/${this.type}.jpg`, (texture) => {
+        textureLoader.load(`/textures/${this.type}.jpg`, (texture) => {
             texture.wrapS = THREE.RepeatWrapping;
             texture.wrapT = THREE.RepeatWrapping;
             texture.repeat.set(1, 1);

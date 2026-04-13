@@ -85,7 +85,7 @@ export class Player {
         this.updateBoundingBox();
 
         // Sounds
-        const soundPaths = { shot: './sounds/shot.ogg' };
+        const soundPaths = { shot: '/sounds/shot.ogg' };
         this.sounds = { shot: new THREE.PositionalAudio(this.listener) };
         Object.values(this.sounds).forEach(sound => this.player.add(sound));
         this.loadSounds(soundPaths);
