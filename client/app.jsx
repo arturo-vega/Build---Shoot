@@ -156,7 +156,7 @@ function App() {
 
             console.log("Game initilization finished!!");
 
-            
+
             setGameState('playing');
             //game.animate();
         } catch (error) {
@@ -239,7 +239,7 @@ function App() {
                 >Back</button>
                 <div className="respawn-container">
                     <div className='respawn-label'>
-                        <h1>Game Has Ended! {teamWon}</h1>
+                        <h1>Game Has Ended! {teamWon == 'Tie' ? 'Tie, both teams lost.' : `${teamWon} team won!`}</h1>
                     </div>
                 </div>
             </div>

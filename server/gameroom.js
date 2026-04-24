@@ -75,11 +75,11 @@ export class GameRoom {
     gameStateUpdate() {
         if (this.gameState.gameEnded) {
             if (this.gameState.blueTeamWon)
-                this.teamWon = 'blue';
+                this.teamWon = 'Blue';
             else if (this.gameState.redTeamWon)
-                this.teamWon = 'red';
+                this.teamWon = 'Red';
             else 
-                this.teamWon = 'tie';
+                this.teamWon = 'Tie';
         } else {
             this.gameEnded = false;
             this.teamWon = '';

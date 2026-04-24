@@ -148,7 +148,7 @@ export class World {
         });
 
         this.redSpawn = new Vector3(spawnArea / 2, 10, 0);
-        this.blueSpawn = new Vector3(((baseSize * 2) + (flagArea * 2) + spawnArea / 2), 10, 0);
+        this.blueSpawn = new Vector3(blueStart + spawnArea * 3, 10, 0);
     }
 
     createBlock(x, y, type = 'wood', health) {

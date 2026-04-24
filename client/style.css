@@ -374,10 +374,10 @@ canvas.webgl {
     background-color: rgba(0, 0, 0, 0.5);
     align-items: center;
     display: flex;
-    left: 50%;
-    top: 50%;
+    left: 45%;
+    top: 45%;
     width: 400px;
-    height: 300px;
+    height: 150px;
     padding: 20px;
     font-size: large;
     border-radius: 20px;
@@ -386,7 +386,7 @@ canvas.webgl {
 .game-info-container {
     position: absolute;
     top: 20px;
-    left: 50%;
+    left: 45%;
     display: flex;
     align-items: center;
     background-color: rgba(0, 0, 0, 0.5);
