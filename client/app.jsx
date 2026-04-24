@@ -20,6 +20,7 @@ function App() {
     const [loadingStatus, setLoadingStatus] = useState('');
     // 'menu', 'connecting', 'loading', 'playing', 'dead', 'gameover'
     const [gameState, setGameState] = useState('');
+    const [teamWon, setTeamWon] = useState('');
     const [socket, setSocket] = useState(null);
     const [serverUrl, setServerUrl] = useState( import.meta.env.VITE_SERVER_URL || 'http://localhost:3000');
     const [playerName, setPlayerName] = useState('');
@@ -148,11 +149,14 @@ function App() {
         setLoadingProcess(0);
 
         try {
-            const game = new Game(socket, playerName, setLoadingProcess, setLoadingStatus, setGameState);
+            const game = new Game(socket, playerName, setLoadingProcess, setLoadingStatus, setGameState, setTeamWon);
             window.gameInstance = game;
 
             await game.initializationFinished;
 
+            console.log("Game initilization finished!!");
+
+            
             setGameState('playing');
             //game.animate();
         } catch (error) {
@@ -235,7 +239,7 @@ function App() {
                 >Back</button>
                 <div className="respawn-container">
                     <div className='respawn-label'>
-                        <h1>Game Has Ended!</h1>
+                        <h1>Game Has Ended! {teamWon}</h1>
                     </div>
                 </div>
             </div>

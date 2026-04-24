@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Block } from './block';
 
 export class World {
-    constructor(scene, worldState, listener) {
+    constructor(scene, worldState, listener, loadingManager) {
         this.listener = listener;
 
         this.scene = scene;
@@ -22,7 +22,7 @@ export class World {
 
         for (const [key, blockData] of worldState) {
 
-            const block = new Block(blockData.x, blockData.y, blockData.type, blockData.health, this.listener);
+            const block = new Block(blockData.x, blockData.y, blockData.type, blockData.health, this.listener, false, loadingManager);
 
             this.blocks.set(key, block);
             this.scene.add(block.mesh);
@@ -218,12 +218,6 @@ export class World {
         let createdBlocks = worldRefreshUpdate.createdBlocks;
         let destroyedBlocks = worldRefreshUpdate.destroyedBlocks;
         let resetBlocks = worldRefreshUpdate.resetBlocks;
-
-        console.log("REFRESHED SHIT");
-
-        console.log(createdBlocks);
-        console.log(destroyedBlocks);
-        console.log(resetBlocks);
 
         let block;
 

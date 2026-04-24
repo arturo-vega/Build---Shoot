@@ -138,7 +138,7 @@ export class GameState {
                 this.redTeamWon = true;
                 console.log("Game over, Red Team won");
             } else if (this.teamScore['red'] < this.teamScore['blue']) {
-                this.blueTeamwon = true;
+                this.blueTeamWon = true;
                 console.log("Game over, Blue Team won");
             } else {
                 this.tie = true;

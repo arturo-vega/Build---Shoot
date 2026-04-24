@@ -82,7 +82,7 @@ export class GameRoom {
                 this.teamWon = 'tie';
         } else {
             this.gameEnded = false;
-            this.teamWon = null;
+            this.teamWon = '';
         }
 
         const gameUpdate = {

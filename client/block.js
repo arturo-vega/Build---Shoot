@@ -1,12 +1,13 @@
 import * as THREE from 'three';
 
 export class Block {
-    constructor(x, y, type, health, listener, playPlaceSound = false) {
+    constructor(x, y, type, health, listener, playPlaceSound = false, loadingManager = null) {
         this.listener = listener;
         this.type = type;
         this.x = x;
         this.y = y;
         this.playPlaceSound = playPlaceSound;
+        this.loadingManager = loadingManager;
 
         // all using wood sound but can change later
         const blockTypes = {
@@ -65,12 +66,19 @@ export class Block {
 
         this.loadSounds();
 
-        this.boundingBox = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
-        this.boundingBox.setFromObject(this.mesh);
+        this.boundingBox = new THREE.Box3(
+            new THREE.Vector3(this.x - 0.5, this.y - 0.5, -0.5),
+            new THREE.Vector3(this.x + 0.5, this.y + 0.5, 0.5)
+        );
+        //this.boundingBox.setFromObject(this.mesh);
     }
 
     createMesh(color) {
-        const textureLoader = new THREE.TextureLoader();
+        
+
+        const textureLoader = this.loadingManager 
+        ? new THREE.TextureLoader(this.loadingManager) 
+        : new THREE.TextureLoader();
 
         const geometry = new THREE.BoxGeometry(1, 1, 1);
         const material = new THREE.MeshPhongMaterial({ color });
@@ -103,7 +111,9 @@ export class Block {
             return;
         }
 
-        const audioLoader = new THREE.AudioLoader();
+        const audioLoader = this.loadingManager 
+        ? new THREE.AudioLoader(this.loadingManager)
+        : new THREE.AudioLoader();
 
         Object.entries(this.soundPaths).forEach(([type, path]) => {
             audioLoader.load(path, (buffer) => {

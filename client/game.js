@@ -11,12 +11,16 @@ import { Item } from './item.js'
 // WILL NOT SEND BUFFERED INFORMATION IS CONNECTION IS UNSTEADY!
 
 export class Game {
-    constructor(socket, playerName, setLoadingProcess, setLoadingStatus, setGameState) {
+    constructor(socket, playerName, setLoadingProcess, setLoadingStatus, setGameState, setTeamWon) {
         this.socket = socket;
         this.playerName = playerName;
         this.setLoadingProcess = setLoadingProcess;
         this.setLoadingStatus = setLoadingStatus;
         this.setGameState = setGameState;
+        this.setTeamWon = setTeamWon;
+
+
+        this.firstTenFrames = 0;
 
         this.playerTeam;
         this.cameraMinY = 3;
@@ -84,6 +88,21 @@ export class Game {
 
     async initializeGame() {
         try {
+
+            this.loadingManager = new THREE.LoadingManager( 
+                () => {
+                    this.renderer.compileAsync(this.scene, this.camera).then(() => {
+                        console.log("Compile async done");
+                        this.resolveInitilization();
+                        this.setupSocketListeners();
+                        this.lastUpdateTime = performance.now();
+                        this.animate();
+                    });
+                },
+            );
+
+            this.loadingManager.itemStart('init');
+
             const initSteps = 6;
             let currentStep = 0;
 
@@ -186,11 +205,6 @@ export class Game {
 
             this.loadSkyBox();
 
-            // time stamp for interpolation
-            this.lastUpdateTime = performance.now();
-
-            this.setupSocketListeners();
-
             this.socket.off('initialWorldState');
             this.socket.off('initialPlayerStates');
             this.socket.off('teamAssigned');
@@ -210,10 +224,7 @@ export class Game {
             updateProcess('Done!');
             console.log("Game initilized successfully");
 
-            this.resolveInitilization();
-
-
-            this.animate();
+            this.loadingManager.itemEnd('init');
 
         } catch (error) {
             console.error('Initilization error:', error);
@@ -242,7 +253,7 @@ export class Game {
     loadAllModels() {
         return new Promise((resolve, reject) => {
             let modelMap = new Map();
-            const gltfLoader = new GLTFLoader();
+            const gltfLoader = new GLTFLoader(this.loadingManager);
             const modelKeys = Object.keys(this.modelList);
             let loadedCount = 0;
 
@@ -287,8 +298,9 @@ export class Game {
             this.socket.on('initialWorldState', (worldState) => {
                 try {
                     let worldMap = new Map(JSON.parse(worldState));
-                    let loadedWorld = new World(this.scene, worldMap, this.listener);
-
+                    console.log("World block count:", worldMap.size);
+                    let loadedWorld = new World(this.scene, worldMap, this.listener, this.loadingManager);
+                    console.log("World blocks after construction:", loadedWorld.blocks.size);
                     resolve(loadedWorld)
                 } catch (error) {
                     console.error("Failed to load world:", error);
@@ -301,7 +313,7 @@ export class Game {
     loadPlayerModel(playerTeam) {
         return new Promise((resolve, reject) => {
             let playerModel = new THREE.Object3D();
-            const gltfLoader = new GLTFLoader();
+            const gltfLoader = new GLTFLoader(this.loadingManager);
             if (playerTeam === 'blue') {
                 gltfLoader.load(this.playerModels.blueRobot, (model) => {
 
@@ -620,7 +632,7 @@ export class Game {
     }
 
     loadSkyBox() {
-        const loader = new THREE.CubeTextureLoader();
+        const loader = new THREE.CubeTextureLoader(this.loadingManager);
         loader.setPath('/skybox/');
 
         const textureCube = loader.load([
@@ -642,6 +654,7 @@ export class Game {
     updateGameState() {
         if (!this.gameEnded) {
             this.setGameState('playing');
+            this.setTeamWon('');
         }
 
         if (this.player.isDead) {
@@ -650,8 +663,10 @@ export class Game {
 
         if (this.gameEnded) {
             this.setGameState('gameover');
+            this.setTeamWon(this.teamWon);
         }
     }
+    
 
     animate() {
         requestAnimationFrame(() => this.animate());
@@ -661,7 +676,7 @@ export class Game {
 
     update() {
         const currentTime = performance.now();
-        const deltaTime = (currentTime - this.lastUpdateTime) / 500;
+        const deltaTime = Math.min((currentTime - this.lastUpdateTime) / 500, 0.1);
 
         this.controls.update();
 

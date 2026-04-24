@@ -57,7 +57,7 @@ export class Player {
         this.lookDirection = 'right';
 
         // Player model setup
-        this.player.position.set(this.position.x, this.position.y + 5, 0);
+        this.player.position.set(this.position.x, this.position.y, 0);
         this.player.rotateY(Math.PI / 2);
         this.player.userData = { id: this.id, position: this.position };
         scene.add(this.player);
