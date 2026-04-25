@@ -22,7 +22,8 @@ Connect to a public server by using this URL (might take up to a minute if the s
 1. Open a terminal in the root of the project
 2. Install dependencies: npm install
 3. Start the server: npm start
-4. Open your browser and navigate to the local address shown in the terminal
+4. Run a local isntance: npm run dev 
+5. Open your browser and navigate to the local address shown in the terminal
 
 ## Multiplayer
 
