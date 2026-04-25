@@ -92,10 +92,13 @@ export class Game {
             this.loadingManager = new THREE.LoadingManager( 
                 () => {
                     this.renderer.compileAsync(this.scene, this.camera).then(() => {
-                        console.log("Compile async done");
+
                         this.resolveInitilization();
+
                         this.setupSocketListeners();
+
                         this.lastUpdateTime = performance.now();
+
                         this.animate();
                     });
                 },
@@ -107,8 +110,11 @@ export class Game {
             let currentStep = 0;
 
             const updateProcess = (status) => {
+
                 currentStep++;
+
                 this.setLoadingProcess((currentStep / initSteps) * 100);
+
                 this.setLoadingStatus(status);
             };
 
@@ -222,7 +228,6 @@ export class Game {
             });
 
             updateProcess('Done!');
-            console.log("Game initilized successfully");
 
             this.loadingManager.itemEnd('init');
 
@@ -237,7 +242,6 @@ export class Game {
         return new Promise((resolve, reject) => {
             this.socket.on('teamAssigned', (team) => {
                 try {
-                    console.log(`Assigned team: ${team}`);
                     this.playerTeam = team.playerTeam;
                     this.spawnPoint = team.spawnPoint;
                     resolve(team);
@@ -298,9 +302,9 @@ export class Game {
             this.socket.on('initialWorldState', (worldState) => {
                 try {
                     let worldMap = new Map(JSON.parse(worldState));
-                    console.log("World block count:", worldMap.size);
+
                     let loadedWorld = new World(this.scene, worldMap, this.listener, this.loadingManager);
-                    console.log("World blocks after construction:", loadedWorld.blocks.size);
+                    
                     resolve(loadedWorld)
                 } catch (error) {
                     console.error("Failed to load world:", error);
@@ -406,7 +410,6 @@ export class Game {
         });
 
         this.socket.on('mapUpdated', (blockData) => {
-            console.log("Recieved block update:", blockData.updateType);
             const x = blockData.x;
             const y = blockData.y;
             if (blockData.updateType === 'added') {
@@ -482,15 +485,12 @@ export class Game {
         });
 
         this.socket.on('roomJoined', (roomData) => {
-            console.log('Successfully joined room:', roomData);
         });
 
         this.socket.on('roomCreated', (roomData) => {
-            console.log('Successfully created room:', roomData);
         });
 
         this.socket.on('roomLeft', () => {
-            console.log('Left the room');
         });
 
         this.socket.on('gameStateUpdate', (update) => {
@@ -748,7 +748,5 @@ export class Game {
         this.socket.off('worldRefresh');
 
         this.otherPlayers.clear();
-
-        console.log('Game cleaned up successfully');
     }
 }

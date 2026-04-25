@@ -43,8 +43,6 @@ export class GameRoom {
                     player.respawn = false;
                     player.health = 100;
 
-                    console.log(`Respawning player ${player.playerName} ${player.id}`);
-
                     // notify server about respawn
                     if (this.callbacks.onPlayerRespawn) {
                         this.callbacks.onPlayerRespawn(player.id);
@@ -110,7 +108,6 @@ export class GameRoom {
         }
         const team = this.gameState.assignTeam(playerData);
         console.log(`${playerData.playerName} assigned to ${team} team`);
-        console.log(this.gameState.teamPopulation);
 
         this.players.set(socketId, {
             playerName: playerData.playerName,
@@ -136,8 +133,6 @@ export class GameRoom {
         } else {
             console.error(`Player ${socketId} not successffully removed from game room: unassigned status: ${unassigned} removed status: ${removed}`);
         }
-
-        console.log(this.gameState.teamPopulation);
 
         return removed;
     }

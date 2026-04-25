@@ -293,17 +293,14 @@ io.on('connection', (socket) => {
 
         if (blockData.updateType === 'added') {
             addBlock(blockData, room, roomId, socket);
-            console.log(`Block placed in room ${roomId}`);
         }
 
         else if (blockData.updateType === 'damaged') {
             damageBlock(blockData, room, roomId, socket);
-            console.log(`Block damaged in room ${roomId}`);
         }
 
         else if (blockData.updateType === 'removed') {
             removeBlock(blockData, room, roomId, socket);
-            console.log(`Block destroyed in room ${roomId}`);
         }
 
         else {

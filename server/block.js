@@ -28,7 +28,6 @@ export class Block {
         // set block to wood if the type is undefined
         const properties = blockTypes[type] || blockTypes.wood;
 
-        //console.log(properties.health);
         this.health = Math.min(properties.health, health);
         this.destructible = properties.destructible;
         this.maxHealth = properties.health;

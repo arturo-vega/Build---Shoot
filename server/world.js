@@ -55,7 +55,6 @@ export class World {
             }
         });
 
-        console.log({createdBlocks, destroyedBlocks, resetBlocks});
         return this.worldRefresh = {createdBlocks, destroyedBlocks, resetBlocks}; 
     }
 

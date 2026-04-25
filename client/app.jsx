@@ -113,14 +113,11 @@ function App() {
     const joinRoom = async (roomId) => {
         if (!socket) return;
 
-        console.log("Trying to join room:", roomId);
-
         socket.emit('joinRoom', { roomId });
 
         socket.on('roomJoined', async (roomData) => {
             console.log('Joined room:', roomData);
             await startGame();
-            console.log("Got game");
         });
 
         socket.on('roomFull', () => {
@@ -140,7 +137,6 @@ function App() {
         socket.on('roomCreated', async (roomData) => {
             console.log('Room created', roomData);
             await startGame();
-            console.log("Got game");
         });
     };
 
@@ -153,9 +149,6 @@ function App() {
             window.gameInstance = game;
 
             await game.initializationFinished;
-
-            console.log("Game initilization finished!!");
-
 
             setGameState('playing');
             //game.animate();

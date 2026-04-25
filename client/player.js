@@ -348,7 +348,6 @@ export class Player {
         if (this.isDead && !this.waitingForReaspawn) {
             this.waitingForReaspawn = true;
             this.respawnTimer = 10;
-            console.log(this.respawnTimer)
             this.respawnCountDown = setInterval(() => {
                 this.respawnTimer -= 1;
                 if (this.respawnTimer < 0) this.respawnTimer = 0;

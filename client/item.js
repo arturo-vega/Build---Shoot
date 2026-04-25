@@ -190,7 +190,6 @@ export class Item {
             intesectPoint.x <= playerBB.max.x &&
             intesectPoint.y >= playerBB.min.y &&
             intesectPoint.y <= playerBB.max.y) {
-            console.log("intersected player");
             return true;
         }
 

@@ -37,7 +37,7 @@ canvas.webgl {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #7c7c7c 0%, #2e5bed 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -119,7 +119,7 @@ canvas.webgl {
 }
 
 .primary-button {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: grey;
     color: white;
 }
 
