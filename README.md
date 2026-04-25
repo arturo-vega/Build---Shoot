@@ -5,7 +5,7 @@
 Up to 8 players join a shared room made entirely of destructible blocks. Place them, blow them up,
 use them as cover; all while hunting down the other team. The team with the fewest deaths wins at the end of the round.
 
-### [Play it live here →](https://facing-worlds.netlify.app/)
+### [Play it live here →](https://facing-worlds.netlify.app/) Connect to a public server with this link: https://facing-worlds.onrender.com/
 
 ![Facing Worlds gameplay screenshot](./screenshot.png)
 
