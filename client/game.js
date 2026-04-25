@@ -154,6 +154,7 @@ export class Game {
 
             this.loadedModels = await this.loadAllModels();
             const earthModel = this.loadedModels.get('earth')
+            earthModel.name = 'earth';
             earthModel.position.set(-300, -450, -500);
             earthModel.scale.set(5, 5, 5);
             earthModel.rotation.set(0, 0, 0);
@@ -201,13 +202,17 @@ export class Game {
             const skyAmbientLight = new THREE.AmbientLight(0x6699cc, 0.05); // Soft blue light
             this.skyScene.add(skyAmbientLight);
 
-            const stageAmbientLight = new THREE.AmbientLight(0xffffff, 0.3); // Soft white light
+            const stageAmbientLight = new THREE.AmbientLight(0xffffff, 0.5); // Soft white light
             this.scene.add(stageAmbientLight);
 
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 2.5);
             directionalLight.position.copy(sun.position);
             this.scene.add(directionalLight);
-            this.skyScene.add(directionalLight);
+
+            const skyDirectionalLight = new THREE.DirectionalLight(0xffffff, 2.5);
+            skyDirectionalLight.position.copy(sun.position);
+            this.skyScene.add(skyDirectionalLight);
+            this.skyScene.add(skyDirectionalLight);
 
             this.loadSkyBox();
 
@@ -666,6 +671,13 @@ export class Game {
             this.setTeamWon(this.teamWon);
         }
     }
+
+    rotateEarth(deltaTime) {
+        const earth = this.skyScene.getObjectByName('earth');
+        if (earth) {
+            earth.rotation.y += deltaTime * 0.005; 
+        }
+    }
     
 
     animate() {
@@ -679,6 +691,8 @@ export class Game {
         const deltaTime = Math.min((currentTime - this.lastUpdateTime) / 500, 0.1);
 
         this.controls.update();
+
+        this.rotateEarth(deltaTime);
 
         this.caluclateFps(currentTime);
         this.player.update(deltaTime);
