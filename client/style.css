@@ -206,16 +206,6 @@ canvas.webgl {
     animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
-}
-
 .error-message {
     background: #f8d7da;
     color: #721c24;
@@ -233,18 +223,21 @@ canvas.webgl {
 }
 
 .back-button {
-    background: rgba(0, 0, 0, 0.7);
+    background-color: rgba(0, 0, 0, 0.5);
     color: white;
     position: absolute;
+    display: flex;
+    top: 20px;
     left: 80%;
     border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
+    padding: 10px;
+    border-radius: 10px;
     cursor: pointer;
     font-weight: bold;
     z-index: 1;
     user-select: none;
     -webkit-user-select: none;
+    align-items: center;
 }
 
 .back-button:hover {

@@ -669,7 +669,7 @@ export class Game {
     
 
     animate() {
-        requestAnimationFrame(() => this.animate());
+        this.animationFrameId = requestAnimationFrame(() => this.animate());
         this.update();
         this.render();
     }
@@ -718,22 +718,54 @@ export class Game {
     }
 
     cleanup() {
-        if (this.renderer) {
-            this.renderer.dispose();
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
         }
 
-        this.scene.traverse((object) => {
-            if (object.geometry) {
-                object.geometry.dispose();
-            }
-            if (object.material) {
-                if (Array.isArray(object.material)) {
-                    object.material.forEach(material => material.dispose());
-                } else {
-                    object.material.dispose();
+
+        const disposeScene = (scene) => {
+            scene.traverse((object) => {
+                if (object.geometry) {
+                    object.geometry.dispose();
                 }
+
+
+                if (object.material) {
+                    if (Array.isArray(object.material)) {
+                        object.material.forEach( (material) => {
+                            Object.values(material).forEach((value) => {
+                                if (value instanceof THREE.Texture) {
+                                    value.dispose();
+                                }
+                            });
+                        });
+                    } else {
+                        object.material.dispose();
+                    }
+                }
+            });
+
+            while (scene.children.length > 0) {
+                scene.remove(scene.children[0]);
             }
-        });
+        };
+
+        disposeScene(this.scene);
+        disposeScene(this.skyScene);
+
+
+        if (this.skyScene.background instanceof THREE.Texture) {
+            this.skyScene.background.dispose();
+            this.skyScene.background = null;
+        }
+
+
+        if (this.renderer) {
+            this.renderer.dispose();
+            this.renderer.domElement = null;
+            this.renderer = null;
+        }
 
         this.socket.off('playerJoined');
         this.socket.off('playerMoved');
